@@ -48,6 +48,7 @@ pnpm test
 ### Why Passkeys Only (No Passwords)
 
 This blueprint intentionally omits password authentication. Passkeys are:
+
 - Phishing-resistant (bound to the origin)
 - Not reusable across sites
 - Not vulnerable to credential stuffing
@@ -66,6 +67,7 @@ tRPC provides end-to-end type safety from database to UI with zero code generati
 ### Why Encrypted Cookie Sessions (Not Database Sessions)
 
 Session data is encrypted and stored in a cookie. This means:
+
 - No session table to query on every request
 - Stateless servers (easier horizontal scaling)
 - Sessions survive server restarts
@@ -81,6 +83,7 @@ Each user action (register, login, update profile) is a single API call. This si
 Unit tests verify implementation details. E2E tests verify behavior. When you refactor the implementation, unit tests break even if behavior is unchanged. E2E tests only break if you actually broke something.
 
 This blueprint emphasizes E2E tests because:
+
 - They catch real bugs (the auth flow actually works)
 - They survive refactoring
 - Playwright's virtual authenticator makes WebAuthn testing practical
@@ -90,10 +93,12 @@ Unit tests are still valuable for complex business logic, but the E2E tests are 
 ## Session Security
 
 Sessions use sliding expiration with an absolute maximum:
+
 - **Idle timeout**: Session expires after inactivity (configurable via `SESSION_IDLE_TIMEOUT_MINUTES`, default 30)
 - **Absolute maximum**: Even active sessions expire (configurable via `SESSION_ABSOLUTE_TIMEOUT_HOURS`, default 8)
 
 Cookie security flags:
+
 - `httpOnly`: Not accessible via JavaScript
 - `secure`: HTTPS only (in production)
 - `sameSite: strict`: Not sent with cross-site requests
@@ -108,11 +113,11 @@ Modern passkeys sync across devices automatically (via iCloud Keychain, Google P
 
 The WebAuthn Relying Party is configured via environment variables:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `WEBAUTHN_RP_ID` | Domain name | `localhost` or `example.com` |
-| `WEBAUTHN_RP_NAME` | Display name | `My App` |
-| `WEBAUTHN_ORIGIN` | Full origin | `https://example.com` |
+| Variable           | Description  | Example                      |
+| ------------------ | ------------ | ---------------------------- |
+| `WEBAUTHN_RP_ID`   | Domain name  | `localhost` or `example.com` |
+| `WEBAUTHN_RP_NAME` | Display name | `My App`                     |
+| `WEBAUTHN_ORIGIN`  | Full origin  | `https://example.com`        |
 
 **Important**: `RP_ID` must match your domain. Passkeys are bound to this identifier and won't work if it changes.
 

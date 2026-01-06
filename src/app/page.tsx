@@ -1,38 +1,38 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { trpc } from "@/lib/trpc"
-import { Button } from "@/components/ui/button"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 
 export default function HomePage() {
-  const router = useRouter()
-  const { data: session, isLoading } = trpc.auth.session.useQuery()
+  const router = useRouter();
+  const { data: session, isLoading } = trpc.auth.session.useQuery();
 
   useEffect(() => {
     if (session) {
-      router.push("/profile")
+      router.push("/profile");
     }
-  }, [session, router])
+  }, [session, router]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
       </div>
-    )
+    );
   }
 
   if (session) {
-    return null // Redirecting
+    return null; // Redirecting
   }
 
   return (
@@ -54,5 +54,5 @@ export default function HomePage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -1,95 +1,95 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { startRegistration } from "@simplewebauthn/browser"
-import { trpc } from "@/lib/trpc"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { startRegistration } from "@simplewebauthn/browser";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { KeyRound, Trash2, Plus, LogOut } from "lucide-react"
+} from "@/components/ui/card";
+import { KeyRound, Trash2, Plus, LogOut } from "lucide-react";
 
 export default function ProfilePage() {
-  const router = useRouter()
-  const utils = trpc.useUtils()
+  const router = useRouter();
+  const utils = trpc.useUtils();
 
-  const { data: profile } = trpc.profile.get.useQuery()
-  const { data: credentials } = trpc.profile.getCredentials.useQuery()
+  const { data: profile } = trpc.profile.get.useQuery();
+  const { data: credentials } = trpc.profile.getCredentials.useQuery();
 
   const updateDisplayName = trpc.profile.updateDisplayName.useMutation({
     onSuccess: () => utils.profile.get.invalidate(),
-  })
+  });
   const logout = trpc.auth.logout.useMutation({
     onSuccess: () => router.push("/login"),
-  })
-  const addPasskeyStart = trpc.profile.addPasskeyStart.useMutation()
+  });
+  const addPasskeyStart = trpc.profile.addPasskeyStart.useMutation();
   const addPasskeyFinish = trpc.profile.addPasskeyFinish.useMutation({
     onSuccess: () => utils.profile.getCredentials.invalidate(),
-  })
+  });
   const deleteCredential = trpc.profile.deleteCredential.useMutation({
     onSuccess: () => utils.profile.getCredentials.invalidate(),
-  })
+  });
 
-  const [displayName, setDisplayName] = useState("")
-  const [isEditing, setIsEditing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isAddingPasskey, setIsAddingPasskey] = useState(false)
+  const [displayName, setDisplayName] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddingPasskey, setIsAddingPasskey] = useState(false);
 
   async function handleUpdateDisplayName(e: React.FormEvent) {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      await updateDisplayName.mutateAsync({ displayName })
-      setIsEditing(false)
+      await updateDisplayName.mutateAsync({ displayName });
+      setIsEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update")
+      setError(err instanceof Error ? err.message : "Failed to update");
     }
   }
 
   async function handleAddPasskey() {
-    setError(null)
-    setIsAddingPasskey(true)
+    setError(null);
+    setIsAddingPasskey(true);
 
     try {
-      const { options } = await addPasskeyStart.mutateAsync()
-      const credential = await startRegistration({ optionsJSON: options })
-      await addPasskeyFinish.mutateAsync({ credential })
+      const { options } = await addPasskeyStart.mutateAsync();
+      const credential = await startRegistration({ optionsJSON: options });
+      await addPasskeyFinish.mutateAsync({ credential });
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled")
+          setError("Passkey creation was cancelled");
         } else {
-          setError(err.message)
+          setError(err.message);
         }
       }
     } finally {
-      setIsAddingPasskey(false)
+      setIsAddingPasskey(false);
     }
   }
 
   async function handleDeleteCredential(credentialId: string) {
-    if (!confirm("Are you sure you want to remove this passkey?")) return
+    if (!confirm("Are you sure you want to remove this passkey?")) return;
 
     try {
-      await deleteCredential.mutateAsync({ credentialId })
+      await deleteCredential.mutateAsync({ credentialId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete")
+      setError(err instanceof Error ? err.message : "Failed to delete");
     }
   }
 
   function formatDate(date: Date | string | null) {
-    if (!date) return "Never"
+    if (!date) return "Never";
     return new Date(date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
-    })
+    });
   }
 
   return (
@@ -112,9 +112,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Account Information</CardTitle>
-            <CardDescription>
-              Manage your account details
-            </CardDescription>
+            <CardDescription>Manage your account details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -155,8 +153,8 @@ export default function ProfilePage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      setDisplayName(profile?.displayName || "")
-                      setIsEditing(true)
+                      setDisplayName(profile?.displayName || "");
+                      setIsEditing(true);
                     }}
                   >
                     Edit
@@ -242,5 +240,5 @@ export default function ProfilePage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
