@@ -126,6 +126,66 @@ test.describe("Authentication", () => {
   });
 });
 
+test.describe("Root URL Redirects", () => {
+  test("unauthenticated user visiting / is redirected to /login", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL("/login", { timeout: 10000 });
+  });
+
+  test("authenticated user visiting / is redirected to /profile", async ({
+    page,
+  }) => {
+    await setupVirtualAuthenticator(page);
+
+    // Register a user first
+    const username = `testuser_${Date.now()}`;
+    await page.goto("/register");
+    await page.waitForLoadState("networkidle");
+
+    await page.locator('input[name="username"]').fill(username);
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL("/profile", { timeout: 15000 });
+
+    // Now visit root URL
+    await page.goto("/");
+
+    // Should redirect to profile
+    await expect(page).toHaveURL("/profile", { timeout: 10000 });
+  });
+});
+
+test.describe("Username Preservation", () => {
+  test("username is preserved when navigating between login and register", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Type username on login page
+    await page.locator('input[name="username"]').fill("testuser");
+
+    // Click "Create one" link
+    await page.locator('a:has-text("Create one")').click();
+
+    // Should be on register page with username in URL and input
+    await expect(page).toHaveURL(/\/register\?username=testuser/);
+    await expect(page.locator('input[name="username"]')).toHaveValue(
+      "testuser"
+    );
+
+    // Click "Sign in" link
+    await page.locator('a:has-text("Sign in")').click();
+
+    // Should be on login page with username in URL and input
+    await expect(page).toHaveURL(/\/login\?username=testuser/);
+    await expect(page.locator('input[name="username"]')).toHaveValue(
+      "testuser"
+    );
+  });
+});
+
 test.describe("Profile", () => {
   test("user can update display name", async ({ page }) => {
     await setupVirtualAuthenticator(page);
