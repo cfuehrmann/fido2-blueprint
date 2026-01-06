@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
@@ -17,9 +17,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const searchParams = useSearchParams();
+  const initialUsername = searchParams.get("username") ?? "";
+
+  const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -62,6 +65,10 @@ export default function LoginPage() {
     }
   }
 
+  const registerHref = username
+    ? `/register?username=${encodeURIComponent(username)}`
+    : "/register";
+
   return (
     <Card>
       <CardHeader>
@@ -93,12 +100,52 @@ export default function LoginPage() {
           </Button>
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-primary hover:underline">
+            <Link href={registerHref} className="text-primary hover:underline">
               Create one
             </Link>
           </p>
         </CardFooter>
       </form>
     </Card>
+  );
+}
+
+function LoginFormFallback() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>Use your passkey to sign in securely</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="username">Username</Label>
+          <Input
+            id="username"
+            name="username"
+            type="text"
+            placeholder="johndoe"
+            disabled
+          />
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-4">
+        <Button className="w-full" disabled>
+          Sign in with passkey
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <span className="text-primary">Create one</span>
+        </p>
+      </CardFooter>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFormFallback />}>
+      <LoginForm />
+    </Suspense>
   );
 }
