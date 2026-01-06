@@ -212,4 +212,42 @@ test.describe("Profile", () => {
       timeout: 10000,
     });
   });
+
+  test("passkey is auto-named and can be renamed", async ({ page }) => {
+    await setupVirtualAuthenticator(page);
+
+    // Register a user
+    const username = `testuser_${Date.now()}`;
+    await page.goto("/register");
+    await page.waitForLoadState("networkidle");
+
+    await page.locator('input[name="username"]').fill(username);
+    await page.locator('button[type="submit"]').click();
+    await expect(page).toHaveURL("/profile", { timeout: 15000 });
+
+    // Should see auto-generated passkey name "Passkey 1"
+    await expect(page.getByText("Passkey 1")).toBeVisible({ timeout: 10000 });
+
+    // Should see "Consider renaming" badge
+    await expect(page.getByText("Consider renaming")).toBeVisible();
+
+    // Click the pencil icon to rename
+    await page.locator('button[title="Rename passkey"]').click();
+
+    // Type new name and save
+    const newName = "My Phone";
+    await page.locator("input").nth(0).fill(newName);
+    await page.locator('button:has-text("Save")').first().click();
+
+    // Should see the new name
+    await expect(page.getByText(newName)).toBeVisible({ timeout: 10000 });
+
+    // "Consider renaming" badge should be gone
+    await expect(page.getByText("Consider renaming")).not.toBeVisible();
+
+    // Reload page and verify name persists
+    await page.reload();
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(newName)).toBeVisible({ timeout: 10000 });
+  });
 });

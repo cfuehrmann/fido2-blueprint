@@ -59,6 +59,16 @@ export async function createRegistrationOptions(
   return options;
 }
 
+// Generate a passkey name based on existing credential count
+async function generatePasskeyName(userId: string): Promise<string> {
+  const existingCredentials = await db
+    .select({ id: schema.credentials.id })
+    .from(schema.credentials)
+    .where(eq(schema.credentials.userId, userId));
+
+  return `Passkey ${existingCredentials.length + 1}`;
+}
+
 // Verify registration response and store credential
 export async function verifyAndStoreRegistration(
   userId: string,
@@ -78,10 +88,14 @@ export async function verifyAndStoreRegistration(
 
   const { registrationInfo } = verification;
 
+  // Generate a name for this passkey
+  const name = await generatePasskeyName(userId);
+
   // Store the credential
   await db.insert(schema.credentials).values({
     id: registrationInfo.credential.id,
     userId,
+    name,
     publicKey: Buffer.from(registrationInfo.credential.publicKey),
     counter: registrationInfo.credential.counter,
     deviceType: registrationInfo.credentialDeviceType,
@@ -178,6 +192,7 @@ export async function getUserCredentials(userId: string) {
   return db
     .select({
       id: schema.credentials.id,
+      name: schema.credentials.name,
       deviceType: schema.credentials.deviceType,
       backedUp: schema.credentials.backedUp,
       createdAt: schema.credentials.createdAt,
@@ -185,6 +200,29 @@ export async function getUserCredentials(userId: string) {
     })
     .from(schema.credentials)
     .where(eq(schema.credentials.userId, userId));
+}
+
+// Rename a credential
+export async function renameCredential(
+  userId: string,
+  credentialId: string,
+  newName: string
+) {
+  // Verify this credential belongs to the user
+  const credential = await db
+    .select({ id: schema.credentials.id, userId: schema.credentials.userId })
+    .from(schema.credentials)
+    .where(eq(schema.credentials.id, credentialId))
+    .get();
+
+  if (!credential || credential.userId !== userId) {
+    throw new Error("Credential not found or does not belong to user");
+  }
+
+  await db
+    .update(schema.credentials)
+    .set({ name: newName })
+    .where(eq(schema.credentials.id, credentialId));
 }
 
 // Delete a credential (user must have at least one remaining)
