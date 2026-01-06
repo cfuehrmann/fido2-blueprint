@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import {
   getUserCredentials,
   deleteCredential,
+  renameCredential,
   createRegistrationOptions,
   verifyAndStoreRegistration,
 } from "@/server/auth/fido2";
@@ -62,6 +63,7 @@ export const profileRouter = router({
     const credentials = await getUserCredentials(ctx.user.userId);
     return credentials.map((cred) => ({
       id: cred.id,
+      name: cred.name,
       deviceType: cred.deviceType,
       backedUp: cred.backedUp,
       createdAt: cred.createdAt,
@@ -127,6 +129,30 @@ export const profileRouter = router({
             error instanceof Error
               ? error.message
               : "Failed to delete credential",
+        });
+      }
+
+      return { success: true };
+    }),
+
+  // Rename a credential
+  renameCredential: protectedProcedure
+    .input(
+      z.object({
+        credentialId: z.string(),
+        name: z.string().min(1, "Name is required").max(50, "Name is too long"),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        await renameCredential(ctx.user.userId, input.credentialId, input.name);
+      } catch (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to rename credential",
         });
       }
 

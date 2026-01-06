@@ -1,6 +1,7 @@
 CREATE TABLE `credentials` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,
+	`name` text NOT NULL,
 	`public_key` blob NOT NULL,
 	`counter` integer NOT NULL,
 	`device_type` text NOT NULL,

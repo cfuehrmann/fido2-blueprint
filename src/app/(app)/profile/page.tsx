@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -14,7 +15,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { KeyRound, Trash2, Plus, LogOut } from "lucide-react";
+import { KeyRound, Trash2, Plus, LogOut, Pencil } from "lucide-react";
+
+// Check if passkey name is auto-generated (needs renaming)
+function needsRenaming(name: string): boolean {
+  return /^Passkey \d+$/.test(name);
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -36,11 +42,18 @@ export default function ProfilePage() {
   const deleteCredential = trpc.profile.deleteCredential.useMutation({
     onSuccess: () => utils.profile.getCredentials.invalidate(),
   });
+  const renameCredentialMutation = trpc.profile.renameCredential.useMutation({
+    onSuccess: () => utils.profile.getCredentials.invalidate(),
+  });
 
   const [displayName, setDisplayName] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAddingPasskey, setIsAddingPasskey] = useState(false);
+  const [renamingCredentialId, setRenamingCredentialId] = useState<
+    string | null
+  >(null);
+  const [newCredentialName, setNewCredentialName] = useState("");
 
   async function handleUpdateDisplayName(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +93,31 @@ export default function ProfilePage() {
       await deleteCredential.mutateAsync({ credentialId });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete");
+    }
+  }
+
+  function startRenaming(credentialId: string, currentName: string) {
+    setRenamingCredentialId(credentialId);
+    setNewCredentialName(currentName);
+  }
+
+  function cancelRenaming() {
+    setRenamingCredentialId(null);
+    setNewCredentialName("");
+  }
+
+  async function handleRenameCredential(credentialId: string) {
+    if (!newCredentialName.trim()) return;
+
+    try {
+      await renameCredentialMutation.mutateAsync({
+        credentialId,
+        name: newCredentialName.trim(),
+      });
+      setRenamingCredentialId(null);
+      setNewCredentialName("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to rename");
     }
   }
 
@@ -206,7 +244,58 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <KeyRound className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">
+                      {renamingCredentialId === cred.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={newCredentialName}
+                            onChange={(e) =>
+                              setNewCredentialName(e.target.value)
+                            }
+                            className="h-8 w-48"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleRenameCredential(cred.id);
+                              } else if (e.key === "Escape") {
+                                cancelRenaming();
+                              }
+                            }}
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleRenameCredential(cred.id)}
+                            disabled={renameCredentialMutation.isPending}
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelRenaming}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{cred.name}</p>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => startRenaming(cred.id, cred.name)}
+                            title="Rename passkey"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                          {needsRenaming(cred.name) && (
+                            <Badge variant="secondary" className="text-xs">
+                              Consider renaming
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-sm text-muted-foreground">
                         {cred.deviceType === "multiDevice"
                           ? "Multi-device passkey"
                           : "Single-device passkey"}

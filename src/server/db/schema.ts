@@ -14,6 +14,8 @@ export const credentials = sqliteTable("credentials", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  // User-friendly name for the passkey (e.g., "My Phone", "Work Laptop")
+  name: text("name").notNull(),
   // The public key in COSE format
   publicKey: blob("public_key", { mode: "buffer" }).notNull(),
   // Counter for replay attack prevention
