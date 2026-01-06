@@ -11,6 +11,16 @@ export interface SessionData {
   challengeType?: "registration" | "authentication"
 }
 
+// Session timeout configuration (with defaults)
+const IDLE_TIMEOUT_MINUTES = parseInt(
+  process.env.SESSION_IDLE_TIMEOUT_MINUTES || "30",
+  10
+)
+const ABSOLUTE_TIMEOUT_HOURS = parseInt(
+  process.env.SESSION_ABSOLUTE_TIMEOUT_HOURS || "8",
+  10
+)
+
 // Session configuration
 const sessionOptions = {
   password: process.env.SESSION_SECRET!,
@@ -19,13 +29,13 @@ const sessionOptions = {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     sameSite: "strict" as const,
-    // 30 minutes idle timeout (sliding expiration handled by iron-session)
-    maxAge: 30 * 60,
+    // Idle timeout (sliding expiration handled by iron-session)
+    maxAge: IDLE_TIMEOUT_MINUTES * 60,
   },
 }
 
-// 8 hours absolute maximum session lifetime
-const ABSOLUTE_MAX_AGE = 8 * 60 * 60 * 1000
+// Absolute maximum session lifetime
+const ABSOLUTE_MAX_AGE_MS = ABSOLUTE_TIMEOUT_HOURS * 60 * 60 * 1000
 
 export async function getSession(): Promise<IronSession<SessionData>> {
   const cookieStore = await cookies()
@@ -56,7 +66,7 @@ export async function isSessionValid(): Promise<boolean> {
   }
   
   // Check absolute maximum age
-  if (Date.now() - session.createdAt > ABSOLUTE_MAX_AGE) {
+  if (Date.now() - session.createdAt > ABSOLUTE_MAX_AGE_MS) {
     await destroySession()
     return false
   }

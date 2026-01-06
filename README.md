@@ -90,8 +90,8 @@ Unit tests are still valuable for complex business logic, but the E2E tests are 
 ## Session Security
 
 Sessions use sliding expiration with an absolute maximum:
-- **30 minutes idle timeout**: Session expires after 30 minutes of inactivity
-- **8 hours absolute maximum**: Even active sessions expire after 8 hours
+- **Idle timeout**: Session expires after inactivity (configurable via `SESSION_IDLE_TIMEOUT_MINUTES`, default 30)
+- **Absolute maximum**: Even active sessions expire (configurable via `SESSION_ABSOLUTE_TIMEOUT_HOURS`, default 8)
 
 Cookie security flags:
 - `httpOnly`: Not accessible via JavaScript
