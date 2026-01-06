@@ -1,30 +1,30 @@
-"use client"
+"use client";
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { trpc } from "@/lib/trpc"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/trpc";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { data: session, isLoading } = trpc.auth.session.useQuery()
+  const router = useRouter();
+  const { data: session, isLoading } = trpc.auth.session.useQuery();
 
   useEffect(() => {
     if (!isLoading && !session) {
-      router.push("/login")
+      router.push("/login");
     }
-  }, [session, isLoading, router])
+  }, [session, isLoading, router]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
       </div>
-    )
+    );
   }
 
   if (!session) {
-    return null // Redirecting
+    return null; // Redirecting
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }

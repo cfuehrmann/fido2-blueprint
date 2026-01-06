@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { startRegistration } from "@simplewebauthn/browser"
-import { trpc } from "@/lib/trpc"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { startRegistration } from "@simplewebauthn/browser";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -15,54 +15,57 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const [username, setUsername] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const registerStart = trpc.auth.registerStart.useMutation()
-  const registerFinish = trpc.auth.registerFinish.useMutation()
+  const registerStart = trpc.auth.registerStart.useMutation();
+  const registerFinish = trpc.auth.registerFinish.useMutation();
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setIsLoading(true)
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
     try {
       // Step 1: Get registration options from server
-      const { options, userId, username: normalizedUsername } =
-        await registerStart.mutateAsync({ username })
+      const {
+        options,
+        userId,
+        username: normalizedUsername,
+      } = await registerStart.mutateAsync({ username });
 
       // Step 2: Create credential with authenticator
-      const credential = await startRegistration({ optionsJSON: options })
+      const credential = await startRegistration({ optionsJSON: options });
 
       // Step 3: Verify with server and create account
       await registerFinish.mutateAsync({
         userId,
         username: normalizedUsername,
         credential,
-      })
+      });
 
       // Success - redirect to profile
-      router.push("/profile")
+      router.push("/profile");
     } catch (err) {
       if (err instanceof Error) {
         // Handle WebAuthn errors
         if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled or timed out")
+          setError("Passkey creation was cancelled or timed out");
         } else if (err.name === "InvalidStateError") {
-          setError("This passkey is already registered")
+          setError("This passkey is already registered");
         } else {
-          setError(err.message)
+          setError(err.message);
         }
       } else {
-        setError("An unexpected error occurred")
+        setError("An unexpected error occurred");
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -93,9 +96,7 @@ export default function RegisterPage() {
               disabled={isLoading}
             />
           </div>
-          {error && (
-            <div className="text-sm text-destructive">{error}</div>
-          )}
+          {error && <div className="text-sm text-destructive">{error}</div>}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
@@ -110,5 +111,5 @@ export default function RegisterPage() {
         </CardFooter>
       </form>
     </Card>
-  )
+  );
 }

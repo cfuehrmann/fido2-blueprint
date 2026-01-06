@@ -8,22 +8,28 @@ import {
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
   type AuthenticatorTransportFuture,
-} from "@simplewebauthn/server"
-import { db, schema } from "@/server/db"
-import { eq } from "drizzle-orm"
+} from "@simplewebauthn/server";
+import { db, schema } from "@/server/db";
+import { eq } from "drizzle-orm";
 
 // WebAuthn Relying Party configuration from environment
-const rpID = process.env.WEBAUTHN_RP_ID || "localhost"
-const rpName = process.env.WEBAUTHN_RP_NAME || "FIDO2 Blueprint"
-const origin = process.env.WEBAUTHN_ORIGIN || "http://localhost:3000"
+const rpID = process.env.WEBAUTHN_RP_ID || "localhost";
+const rpName = process.env.WEBAUTHN_RP_NAME || "FIDO2 Blueprint";
+const origin = process.env.WEBAUTHN_ORIGIN || "http://localhost:3000";
 
 // Generate registration options for a new user
-export async function createRegistrationOptions(userId: string, username: string) {
+export async function createRegistrationOptions(
+  userId: string,
+  username: string
+) {
   // Get existing credentials for this user (for excludeCredentials)
   const existingCredentials = await db
-    .select({ id: schema.credentials.id, transports: schema.credentials.transports })
+    .select({
+      id: schema.credentials.id,
+      transports: schema.credentials.transports,
+    })
     .from(schema.credentials)
-    .where(eq(schema.credentials.userId, userId))
+    .where(eq(schema.credentials.userId, userId));
 
   const options = await generateRegistrationOptions({
     rpName,
@@ -48,9 +54,9 @@ export async function createRegistrationOptions(userId: string, username: string
     },
     // We don't need attestation for this use case
     attestationType: "none",
-  })
+  });
 
-  return options
+  return options;
 }
 
 // Verify registration response and store credential
@@ -64,13 +70,13 @@ export async function verifyAndStoreRegistration(
     expectedChallenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
-  })
+  });
 
   if (!verification.verified || !verification.registrationInfo) {
-    throw new Error("Registration verification failed")
+    throw new Error("Registration verification failed");
   }
 
-  const { registrationInfo } = verification
+  const { registrationInfo } = verification;
 
   // Store the credential
   await db.insert(schema.credentials).values({
@@ -85,21 +91,24 @@ export async function verifyAndStoreRegistration(
       : null,
     createdAt: new Date(),
     lastUsedAt: null,
-  })
+  });
 
-  return verification
+  return verification;
 }
 
 // Generate authentication options for an existing user
 export async function createAuthenticationOptions(userId: string) {
   // Get user's credentials
   const userCredentials = await db
-    .select({ id: schema.credentials.id, transports: schema.credentials.transports })
+    .select({
+      id: schema.credentials.id,
+      transports: schema.credentials.transports,
+    })
     .from(schema.credentials)
-    .where(eq(schema.credentials.userId, userId))
+    .where(eq(schema.credentials.userId, userId));
 
   if (userCredentials.length === 0) {
-    throw new Error("No credentials found for user")
+    throw new Error("No credentials found for user");
   }
 
   const options = await generateAuthenticationOptions({
@@ -111,9 +120,9 @@ export async function createAuthenticationOptions(userId: string) {
         : undefined,
     })),
     userVerification: "required",
-  })
+  });
 
-  return options
+  return options;
 }
 
 // Verify authentication response
@@ -127,10 +136,10 @@ export async function verifyAuthentication(
     .select()
     .from(schema.credentials)
     .where(eq(schema.credentials.id, response.id))
-    .get()
+    .get();
 
   if (!credential || credential.userId !== userId) {
-    throw new Error("Credential not found or does not belong to user")
+    throw new Error("Credential not found or does not belong to user");
   }
 
   const verification = await verifyAuthenticationResponse({
@@ -146,10 +155,10 @@ export async function verifyAuthentication(
         ? (JSON.parse(credential.transports) as AuthenticatorTransportFuture[])
         : undefined,
     },
-  })
+  });
 
   if (!verification.verified) {
-    throw new Error("Authentication verification failed")
+    throw new Error("Authentication verification failed");
   }
 
   // Update the counter and last used timestamp
@@ -159,9 +168,9 @@ export async function verifyAuthentication(
       counter: verification.authenticationInfo.newCounter,
       lastUsedAt: new Date(),
     })
-    .where(eq(schema.credentials.id, response.id))
+    .where(eq(schema.credentials.id, response.id));
 
-  return verification
+  return verification;
 }
 
 // Get all credentials for a user (for the profile page)
@@ -175,7 +184,7 @@ export async function getUserCredentials(userId: string) {
       lastUsedAt: schema.credentials.lastUsedAt,
     })
     .from(schema.credentials)
-    .where(eq(schema.credentials.userId, userId))
+    .where(eq(schema.credentials.userId, userId));
 }
 
 // Delete a credential (user must have at least one remaining)
@@ -184,17 +193,21 @@ export async function deleteCredential(userId: string, credentialId: string) {
   const credentials = await db
     .select({ id: schema.credentials.id })
     .from(schema.credentials)
-    .where(eq(schema.credentials.userId, userId))
+    .where(eq(schema.credentials.userId, userId));
 
   if (credentials.length <= 1) {
-    throw new Error("Cannot delete the only credential. Add another passkey first.")
+    throw new Error(
+      "Cannot delete the only credential. Add another passkey first."
+    );
   }
 
   // Verify this credential belongs to the user
-  const credential = credentials.find((c) => c.id === credentialId)
+  const credential = credentials.find((c) => c.id === credentialId);
   if (!credential) {
-    throw new Error("Credential not found")
+    throw new Error("Credential not found");
   }
 
-  await db.delete(schema.credentials).where(eq(schema.credentials.id, credentialId))
+  await db
+    .delete(schema.credentials)
+    .where(eq(schema.credentials.id, credentialId));
 }

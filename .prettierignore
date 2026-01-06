@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Database
+data/
+
+# Generated files
+pnpm-lock.yaml
+drizzle/
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/

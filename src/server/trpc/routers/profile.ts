@@ -1,15 +1,15 @@
-import { z } from "zod"
-import { TRPCError } from "@trpc/server"
-import { router, protectedProcedure } from "../trpc"
-import { db, schema } from "@/server/db"
-import { eq } from "drizzle-orm"
+import { z } from "zod";
+import { TRPCError } from "@trpc/server";
+import { router, protectedProcedure } from "../trpc";
+import { db, schema } from "@/server/db";
+import { eq } from "drizzle-orm";
 import {
   getUserCredentials,
   deleteCredential,
   createRegistrationOptions,
   verifyAndStoreRegistration,
-} from "@/server/auth/fido2"
-import { storeChallenge, getAndClearChallenge } from "@/server/auth/session"
+} from "@/server/auth/fido2";
+import { storeChallenge, getAndClearChallenge } from "@/server/auth/session";
 
 export const profileRouter = router({
   // Get current user's profile
@@ -23,16 +23,16 @@ export const profileRouter = router({
       })
       .from(schema.users)
       .where(eq(schema.users.id, ctx.user.userId))
-      .get()
+      .get();
 
     if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "User not found",
-      })
+      });
     }
 
-    return user
+    return user;
   }),
 
   // Update display name
@@ -52,21 +52,21 @@ export const profileRouter = router({
           displayName: input.displayName,
           updatedAt: new Date(),
         })
-        .where(eq(schema.users.id, ctx.user.userId))
+        .where(eq(schema.users.id, ctx.user.userId));
 
-      return { success: true }
+      return { success: true };
     }),
 
   // Get user's credentials
   getCredentials: protectedProcedure.query(async ({ ctx }) => {
-    const credentials = await getUserCredentials(ctx.user.userId)
+    const credentials = await getUserCredentials(ctx.user.userId);
     return credentials.map((cred) => ({
       id: cred.id,
       deviceType: cred.deviceType,
       backedUp: cred.backedUp,
       createdAt: cred.createdAt,
       lastUsedAt: cred.lastUsedAt,
-    }))
+    }));
   }),
 
   // Start adding a new passkey
@@ -74,11 +74,11 @@ export const profileRouter = router({
     const options = await createRegistrationOptions(
       ctx.user.userId,
       ctx.user.username
-    )
+    );
 
-    await storeChallenge(options.challenge, "registration")
+    await storeChallenge(options.challenge, "registration");
 
-    return { options }
+    return { options };
   }),
 
   // Finish adding a new passkey
@@ -89,12 +89,12 @@ export const profileRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const challenge = await getAndClearChallenge("registration")
+      const challenge = await getAndClearChallenge("registration");
       if (!challenge) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "No registration challenge found. Please start over.",
-        })
+        });
       }
 
       try {
@@ -102,18 +102,16 @@ export const profileRouter = router({
           ctx.user.userId,
           challenge,
           input.credential
-        )
+        );
       } catch (error) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message:
-            error instanceof Error
-              ? error.message
-              : "Failed to add passkey",
-        })
+            error instanceof Error ? error.message : "Failed to add passkey",
+        });
       }
 
-      return { success: true }
+      return { success: true };
     }),
 
   // Delete a credential
@@ -121,7 +119,7 @@ export const profileRouter = router({
     .input(z.object({ credentialId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        await deleteCredential(ctx.user.userId, input.credentialId)
+        await deleteCredential(ctx.user.userId, input.credentialId);
       } catch (error) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -129,9 +127,9 @@ export const profileRouter = router({
             error instanceof Error
               ? error.message
               : "Failed to delete credential",
-        })
+        });
       }
 
-      return { success: true }
+      return { success: true };
     }),
-})
+});
