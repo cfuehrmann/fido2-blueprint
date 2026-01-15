@@ -24,34 +24,15 @@ import {
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof TRPCClientError) {
-    // Check for Zod validation errors in data.zodError
-    const zodErrors = err.data?.zodError?.fieldErrors;
-    if (zodErrors) {
-      const firstField = Object.keys(zodErrors)[0];
-      if (firstField && zodErrors[firstField]?.[0]) {
-        return zodErrors[firstField][0];
+    // Check for Zod validation errors (properly formatted by server)
+    const zodError = err.data?.zodError;
+    if (zodError?.fieldErrors) {
+      const firstField = Object.keys(zodError.fieldErrors)[0];
+      if (firstField && zodError.fieldErrors[firstField]?.[0]) {
+        return zodError.fieldErrors[firstField][0];
       }
     }
-
-    // Check if message looks like JSON (Zod error serialized in message)
-    const message = err.message;
-    if (message.startsWith("[") || message.startsWith("{")) {
-      try {
-        const parsed = JSON.parse(message);
-        // Handle Zod error array format: [{"code":"...","message":"..."}]
-        if (Array.isArray(parsed) && parsed[0]?.message) {
-          return parsed[0].message;
-        }
-        // Handle object format
-        if (parsed.message) {
-          return parsed.message;
-        }
-      } catch {
-        // Not valid JSON, fall through
-      }
-    }
-
-    return message;
+    return err.message;
   }
   if (err instanceof Error) {
     return err.message;
