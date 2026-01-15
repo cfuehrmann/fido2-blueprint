@@ -9,26 +9,7 @@ import {
 } from "@simplewebauthn/browser";
 import { TRPCClientError } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof TRPCClientError) {
-    // Check for Zod validation errors
-    const zodErrors = err.data?.zodError?.fieldErrors;
-    if (zodErrors) {
-      // Get first field's first error message
-      const firstField = Object.keys(zodErrors)[0];
-      if (firstField && zodErrors[firstField]?.[0]) {
-        return zodErrors[firstField][0];
-      }
-    }
-    // Fall back to tRPC error message
-    return err.message;
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return "An unexpected error occurred";
-}
+import { usernameSchema } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,6 +21,51 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof TRPCClientError) {
+    // Check for Zod validation errors in data.zodError
+    const zodErrors = err.data?.zodError?.fieldErrors;
+    if (zodErrors) {
+      const firstField = Object.keys(zodErrors)[0];
+      if (firstField && zodErrors[firstField]?.[0]) {
+        return zodErrors[firstField][0];
+      }
+    }
+
+    // Check if message looks like JSON (Zod error serialized in message)
+    const message = err.message;
+    if (message.startsWith("[") || message.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(message);
+        // Handle Zod error array format: [{"code":"...","message":"..."}]
+        if (Array.isArray(parsed) && parsed[0]?.message) {
+          return parsed[0].message;
+        }
+        // Handle object format
+        if (parsed.message) {
+          return parsed.message;
+        }
+      } catch {
+        // Not valid JSON, fall through
+      }
+    }
+
+    return message;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "An unexpected error occurred";
+}
+
+function validateUsername(username: string): string | null {
+  const result = usernameSchema.safeParse(username);
+  if (!result.success) {
+    return result.error.issues[0]?.message ?? "Invalid username";
+  }
+  return null;
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -59,6 +85,14 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Client-side validation
+    const validationError = validateUsername(username);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -90,6 +124,14 @@ function LoginForm() {
 
   async function handleRegister() {
     setError(null);
+
+    // Client-side validation
+    const validationError = validateUsername(username);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsRegistering(true);
 
     try {
@@ -137,7 +179,7 @@ function LoginForm() {
         <CardTitle>Sign In</CardTitle>
         <CardDescription>Use your passkey to sign in securely</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -148,9 +190,6 @@ function LoginForm() {
               placeholder="johndoe"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
-              minLength={3}
-              maxLength={30}
               disabled={isDisabled}
             />
           </div>

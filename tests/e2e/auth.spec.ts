@@ -95,6 +95,99 @@ test.describe("Authentication", () => {
     await expect(page.getByText(/not found/i)).toBeVisible({ timeout: 10000 });
   });
 
+  test("shows validation error for empty username on registration", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Leave username empty and click "Create one"
+    await page.locator('button:has-text("Create one")').click();
+
+    // Should show validation error (not JSON)
+    await expect(
+      page.getByText("Username must be at least 3 characters")
+    ).toBeVisible({
+      timeout: 5000,
+    });
+
+    // Error should not contain JSON brackets
+    const errorText = await page.locator(".text-destructive").textContent();
+    expect(errorText).not.toContain("[");
+    expect(errorText).not.toContain("{");
+  });
+
+  test("shows validation error for short username on registration", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Enter too-short username
+    await page.locator('input[name="username"]').fill("ab");
+    await page.locator('button:has-text("Create one")').click();
+
+    // Should show validation error
+    await expect(
+      page.getByText("Username must be at least 3 characters")
+    ).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
+  test("shows validation error for invalid username characters on registration", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Enter username with invalid characters
+    await page.locator('input[name="username"]').fill("test@user");
+    await page.locator('button:has-text("Create one")').click();
+
+    // Should show validation error
+    await expect(
+      page.getByText(
+        "Username can only contain letters, numbers, and underscores"
+      )
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test("shows validation error for empty username on login", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Leave username empty and click login
+    await page.locator('button[type="submit"]').click();
+
+    // Should show validation error
+    await expect(
+      page.getByText("Username must be at least 3 characters")
+    ).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
+  test("shows validation error for short username on login", async ({
+    page,
+  }) => {
+    await page.goto("/login");
+    await page.waitForLoadState("networkidle");
+
+    // Enter too-short username and click login
+    await page.locator('input[name="username"]').fill("ab");
+    await page.locator('button[type="submit"]').click();
+
+    // Should show validation error
+    await expect(
+      page.getByText("Username must be at least 3 characters")
+    ).toBeVisible({
+      timeout: 5000,
+    });
+  });
+
   test("prevents duplicate registration", async ({ page }) => {
     await setupVirtualAuthenticator(page);
 
