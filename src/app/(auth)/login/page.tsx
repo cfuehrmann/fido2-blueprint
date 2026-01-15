@@ -2,9 +2,14 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { startAuthentication } from "@simplewebauthn/browser";
+
+import {
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
+import { TRPCClientError } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
+import { usernameSchema } from "@/lib/validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +22,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof TRPCClientError) {
+    // Check for Zod validation errors (properly formatted by server)
+    const zodError = err.data?.zodError;
+    if (zodError?.fieldErrors) {
+      const firstField = Object.keys(zodError.fieldErrors)[0];
+      if (firstField && zodError.fieldErrors[firstField]?.[0]) {
+        return zodError.fieldErrors[firstField][0];
+      }
+    }
+    return err.message;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "An unexpected error occurred";
+}
+
+function validateUsername(username: string): string | null {
+  const result = usernameSchema.safeParse(username);
+  if (!result.success) {
+    return result.error.issues[0]?.message ?? "Invalid username";
+  }
+  return null;
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,13 +56,24 @@ function LoginForm() {
   const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const loginStart = trpc.auth.loginStart.useMutation();
   const loginFinish = trpc.auth.loginFinish.useMutation();
+  const registerStart = trpc.auth.registerStart.useMutation();
+  const registerFinish = trpc.auth.registerFinish.useMutation();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Client-side validation
+    const validationError = validateUsername(username);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -50,24 +92,67 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      if (err instanceof Error) {
-        // Handle WebAuthn errors
-        if (err.name === "NotAllowedError") {
-          setError("Authentication was cancelled or timed out");
-        } else {
-          setError(err.message);
-        }
+      // Handle WebAuthn errors specially
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        setError("Authentication was cancelled or timed out");
       } else {
-        setError("An unexpected error occurred");
+        setError(getErrorMessage(err));
       }
     } finally {
       setIsLoading(false);
     }
   }
 
-  const registerHref = username
-    ? `/register?username=${encodeURIComponent(username)}`
-    : "/register";
+  async function handleRegister() {
+    setError(null);
+
+    // Client-side validation
+    const validationError = validateUsername(username);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsRegistering(true);
+
+    try {
+      // Step 1: Get registration options from server
+      const {
+        options,
+        userId,
+        username: normalizedUsername,
+      } = await registerStart.mutateAsync({ username });
+
+      // Step 2: Create credential with authenticator
+      const credential = await startRegistration({ optionsJSON: options });
+
+      // Step 3: Verify with server and create account
+      await registerFinish.mutateAsync({
+        userId,
+        username: normalizedUsername,
+        credential,
+      });
+
+      // Success - redirect to profile
+      router.push("/profile");
+    } catch (err) {
+      // Handle WebAuthn errors specially
+      if (err instanceof Error) {
+        if (err.name === "NotAllowedError") {
+          setError("Passkey creation was cancelled or timed out");
+          return;
+        } else if (err.name === "InvalidStateError") {
+          setError("This passkey is already registered");
+          return;
+        }
+      }
+      setError(getErrorMessage(err));
+    } finally {
+      setIsRegistering(false);
+    }
+  }
+
+  const isDisabled = isLoading || isRegistering;
 
   return (
     <Card>
@@ -75,7 +160,7 @@ function LoginForm() {
         <CardTitle>Sign In</CardTitle>
         <CardDescription>Use your passkey to sign in securely</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -86,23 +171,25 @@ function LoginForm() {
               placeholder="johndoe"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
-              minLength={3}
-              maxLength={30}
-              disabled={isLoading}
+              disabled={isDisabled}
             />
           </div>
           {error && <div className="text-sm text-destructive">{error}</div>}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isDisabled}>
             {isLoading ? "Authenticating..." : "Sign in with passkey"}
           </Button>
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
-            <Link href={registerHref} className="text-primary hover:underline">
-              Create one
-            </Link>
+            <button
+              type="button"
+              onClick={handleRegister}
+              disabled={isDisabled}
+              className="text-primary hover:underline disabled:opacity-50"
+            >
+              {isRegistering ? "Creating account..." : "Create one"}
+            </button>
           </p>
         </CardFooter>
       </form>
@@ -135,7 +222,9 @@ function LoginFormFallback() {
         </Button>
         <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <span className="text-primary">Create one</span>
+          <button type="button" disabled className="text-primary opacity-50">
+            Create one
+          </button>
         </p>
       </CardFooter>
     </Card>

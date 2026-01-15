@@ -16,17 +16,7 @@ import {
   verifyAuthentication,
 } from "@/server/auth/fido2";
 import { randomUUID } from "crypto";
-
-// Username validation schema
-const usernameSchema = z
-  .string()
-  .min(3, "Username must be at least 3 characters")
-  .max(30, "Username must be at most 30 characters")
-  .regex(
-    /^[a-zA-Z0-9_]+$/,
-    "Username can only contain letters, numbers, and underscores"
-  )
-  .transform((s) => s.toLowerCase());
+import { usernameSchema } from "@/lib/validation";
 
 export const authRouter = router({
   // Get current session

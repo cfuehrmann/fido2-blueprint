@@ -1,4 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { ZodError } from "zod";
 import { getCurrentUser } from "@/server/auth/session";
 
 // Context type - what's available in every procedure
@@ -12,8 +13,22 @@ export async function createContext(): Promise<Context> {
   return { user };
 }
 
-// Initialize tRPC
-const t = initTRPC.context<Context>().create();
+// Initialize tRPC with error formatter for Zod validation errors
+const t = initTRPC.context<Context>().create({
+  errorFormatter(opts) {
+    const { shape, error } = opts;
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.code === "BAD_REQUEST" && error.cause instanceof ZodError
+            ? error.cause.flatten()
+            : null,
+      },
+    };
+  },
+});
 
 // Base router and procedure
 export const router = t.router;
