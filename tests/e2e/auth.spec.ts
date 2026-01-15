@@ -29,8 +29,8 @@ test.describe("Authentication", () => {
     // Setup virtual authenticator
     await setupVirtualAuthenticator(page);
 
-    // Go to registration page
-    await page.goto("/register");
+    // Go to login page
+    await page.goto("/login");
 
     // Wait for page to be fully loaded
     await page.waitForLoadState("networkidle");
@@ -39,8 +39,8 @@ test.describe("Authentication", () => {
     const username = `testuser_${Date.now()}`;
     await page.locator('input[name="username"]').fill(username);
 
-    // Click register button
-    await page.locator('button[type="submit"]').click();
+    // Click "Create one" button to register
+    await page.locator('button:has-text("Create one")').click();
 
     // Should redirect to profile page
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
@@ -55,11 +55,11 @@ test.describe("Authentication", () => {
 
     // First register a user
     const username = `testuser_${Date.now()}`;
-    await page.goto("/register");
+    await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
 
     // Wait for registration to complete and redirect
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
@@ -101,11 +101,11 @@ test.describe("Authentication", () => {
     const username = `testuser_${Date.now()}`;
 
     // Register first user
-    await page.goto("/register");
+    await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
 
     // Logout
@@ -113,11 +113,10 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL("/login", { timeout: 10000 });
 
     // Try to register with same username
-    await page.goto("/register");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
 
     // Should show error about username taken
     await expect(page.getByText(/already taken/i)).toBeVisible({
@@ -141,11 +140,11 @@ test.describe("Root URL Redirects", () => {
 
     // Register a user first
     const username = `testuser_${Date.now()}`;
-    await page.goto("/register");
+    await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
 
     // Now visit root URL
@@ -156,47 +155,17 @@ test.describe("Root URL Redirects", () => {
   });
 });
 
-test.describe("Username Preservation", () => {
-  test("username is preserved when navigating between login and register", async ({
-    page,
-  }) => {
-    await page.goto("/login");
-    await page.waitForLoadState("networkidle");
-
-    // Type username on login page
-    await page.locator('input[name="username"]').fill("testuser");
-
-    // Click "Create one" link
-    await page.locator('a:has-text("Create one")').click();
-
-    // Should be on register page with username in URL and input
-    await expect(page).toHaveURL(/\/register\?username=testuser/);
-    await expect(page.locator('input[name="username"]')).toHaveValue(
-      "testuser"
-    );
-
-    // Click "Sign in" link
-    await page.locator('a:has-text("Sign in")').click();
-
-    // Should be on login page with username in URL and input
-    await expect(page).toHaveURL(/\/login\?username=testuser/);
-    await expect(page.locator('input[name="username"]')).toHaveValue(
-      "testuser"
-    );
-  });
-});
-
 test.describe("Profile", () => {
   test("user can update display name", async ({ page }) => {
     await setupVirtualAuthenticator(page);
 
     // Register
     const username = `testuser_${Date.now()}`;
-    await page.goto("/register");
+    await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
 
     // Click edit button
@@ -218,11 +187,11 @@ test.describe("Profile", () => {
 
     // Register a user
     const username = `testuser_${Date.now()}`;
-    await page.goto("/register");
+    await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
     await page.locator('input[name="username"]').fill(username);
-    await page.locator('button[type="submit"]').click();
+    await page.locator('button:has-text("Create one")').click();
     await expect(page).toHaveURL("/profile", { timeout: 15000 });
 
     // Should see auto-generated passkey name "Passkey 1"
