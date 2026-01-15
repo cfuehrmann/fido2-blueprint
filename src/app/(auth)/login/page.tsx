@@ -7,7 +7,28 @@ import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
+import { TRPCClientError } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof TRPCClientError) {
+    // Check for Zod validation errors
+    const zodErrors = err.data?.zodError?.fieldErrors;
+    if (zodErrors) {
+      // Get first field's first error message
+      const firstField = Object.keys(zodErrors)[0];
+      if (firstField && zodErrors[firstField]?.[0]) {
+        return zodErrors[firstField][0];
+      }
+    }
+    // Fall back to tRPC error message
+    return err.message;
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return "An unexpected error occurred";
+}
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,15 +77,11 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      if (err instanceof Error) {
-        // Handle WebAuthn errors
-        if (err.name === "NotAllowedError") {
-          setError("Authentication was cancelled or timed out");
-        } else {
-          setError(err.message);
-        }
+      // Handle WebAuthn errors specially
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        setError("Authentication was cancelled or timed out");
       } else {
-        setError("An unexpected error occurred");
+        setError(getErrorMessage(err));
       }
     } finally {
       setIsLoading(false);
@@ -96,18 +113,17 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
+      // Handle WebAuthn errors specially
       if (err instanceof Error) {
-        // Handle WebAuthn errors
         if (err.name === "NotAllowedError") {
           setError("Passkey creation was cancelled or timed out");
+          return;
         } else if (err.name === "InvalidStateError") {
           setError("This passkey is already registered");
-        } else {
-          setError(err.message);
+          return;
         }
-      } else {
-        setError("An unexpected error occurred");
       }
+      setError(getErrorMessage(err));
     } finally {
       setIsRegistering(false);
     }
