@@ -195,6 +195,7 @@ export async function getUserCredentials(userId: string) {
       name: schema.credentials.name,
       deviceType: schema.credentials.deviceType,
       backedUp: schema.credentials.backedUp,
+      transports: schema.credentials.transports,
       createdAt: schema.credentials.createdAt,
       lastUsedAt: schema.credentials.lastUsedAt,
     })
