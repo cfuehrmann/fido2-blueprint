@@ -302,7 +302,7 @@ export default function ProfilePage() {
                         {cred.backedUp && " (synced)"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Created: {formatDate(cred.createdAt)} · Last used:{" "}
+                        Created: {formatDate(cred.createdAt)} · Last Used:{" "}
                         {formatDate(cred.lastUsedAt)}
                       </p>
                       {cred.transports && (
@@ -311,6 +311,9 @@ export default function ProfilePage() {
                           {(JSON.parse(cred.transports) as string[]).join(", ")}
                         </p>
                       )}
+                      <p className="text-sm text-muted-foreground">
+                        Counter: {cred.counter}
+                      </p>
                     </div>
                   </div>
                   <Button
