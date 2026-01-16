@@ -7,9 +7,9 @@ import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
-import { TRPCClientError } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
 import { usernameSchema } from "@/lib/validation";
+import { getWebAuthnErrorMessage } from "@/lib/error-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,24 +21,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof TRPCClientError) {
-    // Check for Zod validation errors (properly formatted by server)
-    const zodError = err.data?.zodError;
-    if (zodError?.fieldErrors) {
-      const firstField = Object.keys(zodError.fieldErrors)[0];
-      if (firstField && zodError.fieldErrors[firstField]?.[0]) {
-        return zodError.fieldErrors[firstField][0];
-      }
-    }
-    return err.message;
-  }
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return "An unexpected error occurred";
-}
 
 function validateUsername(username: string): string | null {
   const result = usernameSchema.safeParse(username);
@@ -57,6 +39,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const loginStart = trpc.auth.loginStart.useMutation();
   const loginFinish = trpc.auth.loginFinish.useMutation();
@@ -78,25 +61,28 @@ function LoginForm() {
 
     try {
       // Step 1: Get authentication options from server
+      console.log("[Login] Step 1: Calling loginStart...");
       const { options } = await loginStart.mutateAsync({ username });
+      console.log("[Login] Step 1 complete: Got options");
 
       // Step 2: Authenticate with passkey
+      console.log("[Login] Step 2: Calling startAuthentication...");
       const credential = await startAuthentication({ optionsJSON: options });
+      console.log("[Login] Step 2 complete: Got credential");
 
       // Step 3: Verify with server (userId comes from session cookie, not client)
+      console.log("[Login] Step 3: Calling loginFinish...");
       await loginFinish.mutateAsync({
         credential,
       });
+      console.log("[Login] Step 3 complete: Verified");
 
       // Success - redirect to profile
+      console.log("[Login] Success, redirecting...");
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
-      if (err instanceof Error && err.name === "NotAllowedError") {
-        setError("Authentication was cancelled or timed out");
-      } else {
-        setError(getErrorMessage(err));
-      }
+      console.error("[Login] Error caught:", err);
+      setError(getWebAuthnErrorMessage(err, "login"));
     } finally {
       setIsLoading(false);
     }
@@ -116,32 +102,38 @@ function LoginForm() {
 
     try {
       // Step 1: Get registration options from server
+      console.log("[Register] Step 1: Calling registerStart...");
       const { options } = await registerStart.mutateAsync({ username });
+      console.log("[Register] Step 1 complete: Got options");
 
       // Step 2: Create credential with authenticator
+      console.log("[Register] Step 2: Calling startRegistration...");
       const credential = await startRegistration({ optionsJSON: options });
+      console.log("[Register] Step 2 complete: Got credential");
 
       // Step 3: Verify with server and create account (userId/username come from session cookie)
+      console.log("[Register] Step 3: Calling registerFinish...");
       await registerFinish.mutateAsync({
         credential,
       });
+      console.log("[Register] Step 3 complete: Account created");
 
       // Success - redirect to profile
+      console.log("[Register] Success, redirecting...");
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
-      if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled or timed out");
-          return;
-        } else if (err.name === "InvalidStateError") {
-          setError("This passkey is already registered");
-          return;
-        }
-      }
-      setError(getErrorMessage(err));
+      console.error("[Register] Error caught:", err);
+      setError(getWebAuthnErrorMessage(err, "register"));
     } finally {
       setIsRegistering(false);
+    }
+  }
+
+  function handleCopyError() {
+    if (error) {
+      navigator.clipboard.writeText(error);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
@@ -167,7 +159,18 @@ function LoginForm() {
               disabled={isDisabled}
             />
           </div>
-          {error && <div className="text-sm text-destructive">{error}</div>}
+          {error && (
+            <div className="text-sm text-destructive space-y-1">
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={handleCopyError}
+                className="text-xs underline opacity-70 hover:opacity-100"
+              >
+                {copied ? "Copied!" : "Copy error details"}
+              </button>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full" disabled={isDisabled}>

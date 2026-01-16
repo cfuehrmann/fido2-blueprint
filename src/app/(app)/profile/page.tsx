@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
+import { getWebAuthnErrorMessage } from "@/lib/error-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,6 +55,7 @@ export default function ProfilePage() {
     string | null
   >(null);
   const [newCredentialName, setNewCredentialName] = useState("");
+  const [copied, setCopied] = useState(false);
 
   async function handleUpdateDisplayName(e: React.FormEvent) {
     e.preventDefault();
@@ -70,19 +72,30 @@ export default function ProfilePage() {
     setIsAddingPasskey(true);
 
     try {
+      console.log("[AddPasskey] Step 1: Calling addPasskeyStart...");
       const { options } = await addPasskeyStart.mutateAsync();
+      console.log("[AddPasskey] Step 1 complete: Got options");
+
+      console.log("[AddPasskey] Step 2: Calling startRegistration...");
       const credential = await startRegistration({ optionsJSON: options });
+      console.log("[AddPasskey] Step 2 complete: Got credential");
+
+      console.log("[AddPasskey] Step 3: Calling addPasskeyFinish...");
       await addPasskeyFinish.mutateAsync({ credential });
+      console.log("[AddPasskey] Step 3 complete: Passkey added");
     } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled");
-        } else {
-          setError(err.message);
-        }
-      }
+      console.error("[AddPasskey] Error caught:", err);
+      setError(getWebAuthnErrorMessage(err, "register"));
     } finally {
       setIsAddingPasskey(false);
+    }
+  }
+
+  function handleCopyError() {
+    if (error) {
+      navigator.clipboard.writeText(error);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
@@ -232,7 +245,16 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <div className="text-sm text-destructive mb-4">{error}</div>
+              <div className="text-sm text-destructive mb-4 space-y-1">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={handleCopyError}
+                  className="text-xs underline opacity-70 hover:opacity-100"
+                >
+                  {copied ? "Copied!" : "Copy error details"}
+                </button>
+              </div>
             )}
 
             <div className="space-y-3">
