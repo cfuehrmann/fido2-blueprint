@@ -78,7 +78,14 @@ export const profileRouter = router({
       ctx.user.username
     );
 
-    await storeChallenge(options.challenge, "registration");
+    // Store challenge with user data (even though we have ctx.user, this ensures
+    // the challenge is cryptographically bound to the user who started it)
+    await storeChallenge(
+      options.challenge,
+      "registration",
+      ctx.user.userId,
+      ctx.user.username
+    );
 
     return { options };
   }),
@@ -91,18 +98,26 @@ export const profileRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const challenge = await getAndClearChallenge("registration");
-      if (!challenge) {
+      const challengeData = await getAndClearChallenge("registration");
+      if (!challengeData) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "No registration challenge found. Please start over.",
         });
       }
 
+      // Verify the challenge was issued for this user (defense in depth)
+      if (challengeData.userId !== ctx.user.userId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Challenge was not issued for this user. Please start over.",
+        });
+      }
+
       try {
         await verifyAndStoreRegistration(
           ctx.user.userId,
-          challenge,
+          challengeData.challenge,
           input.credential
         );
       } catch (error) {

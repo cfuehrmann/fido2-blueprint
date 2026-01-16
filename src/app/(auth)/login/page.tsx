@@ -78,14 +78,13 @@ function LoginForm() {
 
     try {
       // Step 1: Get authentication options from server
-      const { options, userId } = await loginStart.mutateAsync({ username });
+      const { options } = await loginStart.mutateAsync({ username });
 
       // Step 2: Authenticate with passkey
       const credential = await startAuthentication({ optionsJSON: options });
 
-      // Step 3: Verify with server
+      // Step 3: Verify with server (userId comes from session cookie, not client)
       await loginFinish.mutateAsync({
-        userId,
         credential,
       });
 
@@ -117,19 +116,13 @@ function LoginForm() {
 
     try {
       // Step 1: Get registration options from server
-      const {
-        options,
-        userId,
-        username: normalizedUsername,
-      } = await registerStart.mutateAsync({ username });
+      const { options } = await registerStart.mutateAsync({ username });
 
       // Step 2: Create credential with authenticator
       const credential = await startRegistration({ optionsJSON: options });
 
-      // Step 3: Verify with server and create account
+      // Step 3: Verify with server and create account (userId/username come from session cookie)
       await registerFinish.mutateAsync({
-        userId,
-        username: normalizedUsername,
         credential,
       });
 

@@ -9,6 +9,9 @@ export interface SessionData {
   // Temporary storage for WebAuthn challenges
   challenge?: string;
   challengeType?: "registration" | "authentication";
+  // Pending user data during registration/login ceremony (before session is established)
+  pendingUserId?: string;
+  pendingUsername?: string;
 }
 
 // Session timeout configuration (with defaults)
@@ -93,31 +96,54 @@ export async function getCurrentUser(): Promise<{
   };
 }
 
-// Store WebAuthn challenge in session
+// Store WebAuthn challenge in session along with pending user data
 export async function storeChallenge(
   challenge: string,
-  type: "registration" | "authentication"
+  type: "registration" | "authentication",
+  userId: string,
+  username: string
 ): Promise<void> {
   const session = await getSession();
   session.challenge = challenge;
   session.challengeType = type;
+  session.pendingUserId = userId;
+  session.pendingUsername = username;
   await session.save();
+}
+
+// Result type for getAndClearChallenge
+export interface ChallengeData {
+  challenge: string;
+  userId: string;
+  username: string;
 }
 
 // Retrieve and clear WebAuthn challenge from session
 export async function getAndClearChallenge(
   expectedType: "registration" | "authentication"
-): Promise<string | null> {
+): Promise<ChallengeData | null> {
   const session = await getSession();
 
-  if (!session.challenge || session.challengeType !== expectedType) {
+  if (
+    !session.challenge ||
+    session.challengeType !== expectedType ||
+    !session.pendingUserId ||
+    !session.pendingUsername
+  ) {
     return null;
   }
 
-  const challenge = session.challenge;
+  const result: ChallengeData = {
+    challenge: session.challenge,
+    userId: session.pendingUserId,
+    username: session.pendingUsername,
+  };
+
   session.challenge = undefined;
   session.challengeType = undefined;
+  session.pendingUserId = undefined;
+  session.pendingUsername = undefined;
   await session.save();
 
-  return challenge;
+  return result;
 }
