@@ -67,6 +67,7 @@ export const profileRouter = router({
       deviceType: cred.deviceType,
       backedUp: cred.backedUp,
       transports: cred.transports,
+      counter: cred.counter,
       createdAt: cred.createdAt,
       lastUsedAt: cred.lastUsedAt,
     }));

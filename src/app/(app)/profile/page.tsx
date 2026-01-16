@@ -311,6 +311,9 @@ export default function ProfilePage() {
                           {(JSON.parse(cred.transports) as string[]).join(", ")}
                         </p>
                       )}
+                      <p className="text-sm text-muted-foreground">
+                        Counter: {cred.counter}
+                      </p>
                     </div>
                   </div>
                   <Button
