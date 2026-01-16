@@ -10,6 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !session) {
+      console.log("[AppLayout] No session, redirecting to login");
       router.push("/login");
     }
   }, [session, isLoading, router]);

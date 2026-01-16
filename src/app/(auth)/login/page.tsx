@@ -52,6 +52,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialUsername = searchParams.get("username") ?? "";
+  const utils = trpc.useUtils();
 
   const [username, setUsername] = useState(initialUsername);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +88,10 @@ function LoginForm() {
       await loginFinish.mutateAsync({
         credential,
       });
+
+      // Invalidate session cache before redirect to prevent race condition
+      // where profile layout sees stale "no session" and redirects back to login
+      await utils.auth.session.invalidate();
 
       // Success - redirect to profile
       router.push("/profile");
@@ -125,6 +130,10 @@ function LoginForm() {
       await registerFinish.mutateAsync({
         credential,
       });
+
+      // Invalidate session cache before redirect to prevent race condition
+      // where profile layout sees stale "no session" and redirects back to login
+      await utils.auth.session.invalidate();
 
       // Success - redirect to profile
       router.push("/profile");
