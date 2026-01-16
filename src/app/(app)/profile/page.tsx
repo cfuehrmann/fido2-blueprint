@@ -305,6 +305,12 @@ export default function ProfilePage() {
                         Created: {formatDate(cred.createdAt)} · Last used:{" "}
                         {formatDate(cred.lastUsedAt)}
                       </p>
+                      {cred.transports && (
+                        <p className="text-sm text-muted-foreground">
+                          Transports:{" "}
+                          {(JSON.parse(cred.transports) as string[]).join(", ")}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Button
