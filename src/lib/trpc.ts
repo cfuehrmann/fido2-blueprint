@@ -6,7 +6,7 @@ import type { AppRouter } from "@/server/trpc/router";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-export function getBaseUrl() {
+function getBaseUrl() {
   if (typeof window !== "undefined") {
     return "";
   }
