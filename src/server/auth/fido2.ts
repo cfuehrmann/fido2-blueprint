@@ -4,7 +4,6 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
   type VerifiedRegistrationResponse,
-  type VerifiedAuthenticationResponse,
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
   type AuthenticatorTransportFuture,
@@ -110,50 +109,42 @@ export async function verifyAndStoreRegistration(
   return verification;
 }
 
-// Generate authentication options for an existing user
-export async function createAuthenticationOptions(userId: string) {
-  // Get user's credentials
-  const userCredentials = await db
-    .select({
-      id: schema.credentials.id,
-      transports: schema.credentials.transports,
-    })
-    .from(schema.credentials)
-    .where(eq(schema.credentials.userId, userId));
-
-  if (userCredentials.length === 0) {
-    throw new Error("No credentials found for user");
-  }
-
+// Generate authentication options for usernameless flow
+export async function createAuthenticationOptions() {
   const options = await generateAuthenticationOptions({
     rpID,
-    allowCredentials: userCredentials.map((cred) => ({
-      id: cred.id,
-      transports: cred.transports
-        ? (JSON.parse(cred.transports) as AuthenticatorTransportFuture[])
-        : undefined,
-    })),
+    allowCredentials: [], // Empty = show all discoverable credentials for this rpId
     userVerification: "required",
   });
 
   return options;
 }
 
-// Verify authentication response
+// Verify authentication response and return user info (for usernameless flow)
 export async function verifyAuthentication(
-  userId: string,
   expectedChallenge: string,
   response: AuthenticationResponseJSON
-): Promise<VerifiedAuthenticationResponse> {
-  // Get the credential being used
+): Promise<{ verified: boolean; userId: string; username: string }> {
+  // Look up credential by ID
   const credential = await db
     .select()
     .from(schema.credentials)
     .where(eq(schema.credentials.id, response.id))
     .get();
 
-  if (!credential || credential.userId !== userId) {
-    throw new Error("Credential not found or does not belong to user");
+  if (!credential) {
+    throw new Error("Credential not found");
+  }
+
+  // Look up user
+  const user = await db
+    .select({ id: schema.users.id, username: schema.users.username })
+    .from(schema.users)
+    .where(eq(schema.users.id, credential.userId))
+    .get();
+
+  if (!user) {
+    throw new Error("User not found");
   }
 
   const verification = await verifyAuthenticationResponse({
@@ -184,7 +175,7 @@ export async function verifyAuthentication(
     })
     .where(eq(schema.credentials.id, response.id));
 
-  return verification;
+  return { verified: true, userId: user.id, username: user.username };
 }
 
 // Get all credentials for a user (for the profile page)
