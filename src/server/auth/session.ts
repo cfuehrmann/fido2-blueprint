@@ -2,7 +2,7 @@ import { getIronSession, IronSession } from "iron-session";
 import { cookies } from "next/headers";
 
 // Session data structure
-export interface SessionData {
+interface SessionData {
   userId?: string;
   username?: string;
   createdAt?: number;
@@ -40,7 +40,7 @@ const sessionOptions = {
 // Absolute maximum session lifetime
 const ABSOLUTE_MAX_AGE_MS = ABSOLUTE_TIMEOUT_HOURS * 60 * 60 * 1000;
 
-export async function getSession(): Promise<IronSession<SessionData>> {
+async function getSession(): Promise<IronSession<SessionData>> {
   const cookieStore = await cookies();
   return getIronSession<SessionData>(cookieStore, sessionOptions);
 }
@@ -64,7 +64,7 @@ export async function destroySession(): Promise<void> {
   session.destroy();
 }
 
-export async function isSessionValid(): Promise<boolean> {
+async function isSessionValid(): Promise<boolean> {
   const session = await getSession();
 
   if (!session.userId || !session.createdAt) {
