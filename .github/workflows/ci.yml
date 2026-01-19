@@ -53,6 +53,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
+      - run: mkdir -p ./data
       - run: pnpm build
     env:
       DATABASE_PATH: ./data/app.db
