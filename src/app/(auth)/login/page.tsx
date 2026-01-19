@@ -172,7 +172,7 @@ function LoginForm() {
             </div>
             {error && <div className="text-sm text-destructive">{error}</div>}
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 pt-6">
             <Button type="submit" className="w-full" disabled={isDisabled}>
               {isRegistering ? "Creating account..." : "Create account"}
             </Button>
