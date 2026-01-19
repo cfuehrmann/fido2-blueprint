@@ -152,7 +152,7 @@ function LoginForm() {
         <CardHeader>
           <CardTitle>Create Account</CardTitle>
           <CardDescription>
-            Choose a username and create your passkey
+            Choose a username and create a passkey
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleRegister} noValidate>
@@ -201,11 +201,13 @@ function LoginForm() {
     <Card>
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
-        <CardDescription>Use your passkey to sign in securely</CardDescription>
+        <CardDescription>Use a passkey to sign in securely</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {error && <div className="text-sm text-destructive">{error}</div>}
-      </CardContent>
+      {error && (
+        <CardContent>
+          <div className="text-sm text-destructive">{error}</div>
+        </CardContent>
+      )}
       <CardFooter className="flex flex-col space-y-4">
         <Button onClick={handleLogin} className="w-full" disabled={isDisabled}>
           {isLoading ? "Authenticating..." : "Sign in with passkey"}
@@ -234,9 +236,8 @@ function LoginFormFallback() {
     <Card>
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
-        <CardDescription>Use your passkey to sign in securely</CardDescription>
+        <CardDescription>Use a passkey to sign in securely</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4" />
       <CardFooter className="flex flex-col space-y-4">
         <Button className="w-full" disabled>
           Sign in with passkey
