@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import {
   startAuthentication,
@@ -50,11 +50,10 @@ function validateUsername(username: string): string | null {
 
 function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialUsername = searchParams.get("username") ?? "";
   const utils = trpc.useUtils();
 
-  const [username, setUsername] = useState(initialUsername);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [username, setUsername] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -64,33 +63,23 @@ function LoginForm() {
   const registerStart = trpc.auth.registerStart.useMutation();
   const registerFinish = trpc.auth.registerFinish.useMutation();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleLogin() {
     setError(null);
-
-    // Client-side validation
-    const validationError = validateUsername(username);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Step 1: Get authentication options from server
-      const { options } = await loginStart.mutateAsync({ username });
+      // Step 1: Get authentication options from server (no username needed)
+      const { options } = await loginStart.mutateAsync();
 
-      // Step 2: Authenticate with passkey
+      // Step 2: Authenticate with passkey - browser shows all discoverable credentials
       const credential = await startAuthentication({ optionsJSON: options });
 
-      // Step 3: Verify with server (userId comes from session cookie, not client)
+      // Step 3: Verify with server (user is identified by credential ID)
       await loginFinish.mutateAsync({
         credential,
       });
 
       // Invalidate session cache before redirect to prevent race condition
-      // where profile layout sees stale "no session" and redirects back to login
       await utils.auth.session.invalidate();
 
       // Success - redirect to profile
@@ -107,7 +96,8 @@ function LoginForm() {
     }
   }
 
-  async function handleRegister() {
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
     setError(null);
 
     // Client-side validation
@@ -126,13 +116,12 @@ function LoginForm() {
       // Step 2: Create credential with authenticator
       const credential = await startRegistration({ optionsJSON: options });
 
-      // Step 3: Verify with server and create account (userId/username come from session cookie)
+      // Step 3: Verify with server and create account
       await registerFinish.mutateAsync({
         credential,
       });
 
       // Invalidate session cache before redirect to prevent race condition
-      // where profile layout sees stale "no session" and redirects back to login
       await utils.auth.session.invalidate();
 
       // Success - redirect to profile
@@ -156,45 +145,86 @@ function LoginForm() {
 
   const isDisabled = isLoading || isRegistering;
 
+  // Registration view
+  if (showRegistration) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Create Account</CardTitle>
+          <CardDescription>
+            Choose a username and create your passkey
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleRegister} noValidate>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="johndoe"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isDisabled}
+                autoFocus
+              />
+            </div>
+            {error && <div className="text-sm text-destructive">{error}</div>}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button type="submit" className="w-full" disabled={isDisabled}>
+              {isRegistering ? "Creating account..." : "Create account"}
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRegistration(false);
+                  setError(null);
+                }}
+                disabled={isDisabled}
+                className="text-primary hover:underline disabled:opacity-50"
+              >
+                Sign in
+              </button>
+            </p>
+          </CardFooter>
+        </form>
+      </Card>
+    );
+  }
+
+  // Login view (default)
   return (
     <Card>
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
         <CardDescription>Use your passkey to sign in securely</CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit} noValidate>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="johndoe"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={isDisabled}
-            />
-          </div>
-          {error && <div className="text-sm text-destructive">{error}</div>}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <Button type="submit" className="w-full" disabled={isDisabled}>
-            {isLoading ? "Authenticating..." : "Sign in with passkey"}
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <button
-              type="button"
-              onClick={handleRegister}
-              disabled={isDisabled}
-              className="text-primary hover:underline disabled:opacity-50"
-            >
-              {isRegistering ? "Creating account..." : "Create one"}
-            </button>
-          </p>
-        </CardFooter>
-      </form>
+      <CardContent className="space-y-4">
+        {error && <div className="text-sm text-destructive">{error}</div>}
+      </CardContent>
+      <CardFooter className="flex flex-col space-y-4">
+        <Button onClick={handleLogin} className="w-full" disabled={isDisabled}>
+          {isLoading ? "Authenticating..." : "Sign in with passkey"}
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <button
+            type="button"
+            onClick={() => {
+              setShowRegistration(true);
+              setError(null);
+            }}
+            disabled={isDisabled}
+            className="text-primary hover:underline disabled:opacity-50"
+          >
+            Create one
+          </button>
+        </p>
+      </CardFooter>
     </Card>
   );
 }
@@ -206,18 +236,7 @@ function LoginFormFallback() {
         <CardTitle>Sign In</CardTitle>
         <CardDescription>Use your passkey to sign in securely</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            name="username"
-            type="text"
-            placeholder="johndoe"
-            disabled
-          />
-        </div>
-      </CardContent>
+      <CardContent className="space-y-4" />
       <CardFooter className="flex flex-col space-y-4">
         <Button className="w-full" disabled>
           Sign in with passkey

@@ -8,6 +8,8 @@ import {
   destroySession,
   storeChallenge,
   getAndClearChallenge,
+  storeChallengeUsernameless,
+  getAndClearChallengeUsernameless,
 } from "@/server/auth/session";
 import {
   createRegistrationOptions,
@@ -122,42 +124,19 @@ export const authRouter = router({
       return { success: true };
     }),
 
-  // Start login - generate authentication options
-  loginStart: publicProcedure
-    .input(z.object({ username: usernameSchema }))
-    .mutation(async ({ input }) => {
-      const { username } = input;
+  // Start login - generate authentication options (usernameless flow)
+  loginStart: publicProcedure.mutation(async () => {
+    // Generate authentication options without allowCredentials
+    // This allows the authenticator to show all discoverable credentials
+    const options = await createAuthenticationOptions();
 
-      // Find the user
-      const user = await db
-        .select({ id: schema.users.id, username: schema.users.username })
-        .from(schema.users)
-        .where(eq(schema.users.username, username))
-        .get();
+    // Store only the challenge (no user binding for usernameless flow)
+    await storeChallengeUsernameless(options.challenge);
 
-      if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User not found",
-        });
-      }
+    return { options };
+  }),
 
-      // Generate authentication options
-      const options = await createAuthenticationOptions(user.id);
-
-      // Store challenge and user data in session (binds them cryptographically)
-      await storeChallenge(
-        options.challenge,
-        "authentication",
-        user.id,
-        user.username
-      );
-
-      // Return options to client (userId not needed by client for finish)
-      return { options };
-    }),
-
-  // Finish login - verify response and create session
+  // Finish login - verify response and create session (usernameless flow)
   loginFinish: publicProcedure
     .input(
       z.object({
@@ -167,20 +146,24 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       const { credential } = input;
 
-      // Get and clear the challenge and user data from session
-      const challengeData = await getAndClearChallenge("authentication");
-      if (!challengeData) {
+      // Get and clear the challenge from session
+      const challenge = await getAndClearChallengeUsernameless();
+      if (!challenge) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "No authentication challenge found. Please start over.",
         });
       }
 
-      const { challenge, userId, username } = challengeData;
-
-      // Verify the authentication
+      // Verify the authentication and get user info from credential
       try {
-        await verifyAuthentication(userId, challenge, credential);
+        const { userId, username } = await verifyAuthentication(
+          challenge,
+          credential
+        );
+
+        // Create session
+        await createSession(userId, username);
       } catch (error) {
         throw new TRPCError({
           code: "UNAUTHORIZED",
@@ -190,9 +173,6 @@ export const authRouter = router({
               : "Authentication verification failed",
         });
       }
-
-      // Create session
-      await createSession(userId, username);
 
       return { success: true };
     }),

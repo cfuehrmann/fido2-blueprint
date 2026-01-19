@@ -96,10 +96,10 @@ export async function getCurrentUser(): Promise<{
   };
 }
 
-// Store WebAuthn challenge in session along with pending user data
+// Store WebAuthn challenge in session along with pending user data (for registration)
 export async function storeChallenge(
   challenge: string,
-  type: "registration" | "authentication",
+  type: "registration",
   userId: string,
   username: string
 ): Promise<void> {
@@ -111,6 +111,18 @@ export async function storeChallenge(
   await session.save();
 }
 
+// Store WebAuthn challenge in session (for usernameless authentication)
+export async function storeChallengeUsernameless(
+  challenge: string
+): Promise<void> {
+  const session = await getSession();
+  session.challenge = challenge;
+  session.challengeType = "authentication";
+  session.pendingUserId = undefined;
+  session.pendingUsername = undefined;
+  await session.save();
+}
+
 // Result type for getAndClearChallenge
 export interface ChallengeData {
   challenge: string;
@@ -118,9 +130,9 @@ export interface ChallengeData {
   username: string;
 }
 
-// Retrieve and clear WebAuthn challenge from session
+// Retrieve and clear WebAuthn challenge from session (for registration)
 export async function getAndClearChallenge(
-  expectedType: "registration" | "authentication"
+  expectedType: "registration"
 ): Promise<ChallengeData | null> {
   const session = await getSession();
 
@@ -146,4 +158,23 @@ export async function getAndClearChallenge(
   await session.save();
 
   return result;
+}
+
+// Retrieve and clear WebAuthn challenge from session (for usernameless authentication)
+export async function getAndClearChallengeUsernameless(): Promise<
+  string | null
+> {
+  const session = await getSession();
+
+  if (!session.challenge || session.challengeType !== "authentication") {
+    return null;
+  }
+
+  const challenge = session.challenge;
+
+  session.challenge = undefined;
+  session.challengeType = undefined;
+  await session.save();
+
+  return challenge;
 }
