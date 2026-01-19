@@ -14,6 +14,16 @@ interface SessionData {
   pendingUsername?: string;
 }
 
+// Validate SESSION_SECRET is set and has minimum length
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret || sessionSecret.trim().length < 32) {
+  throw new Error(
+    "SESSION_SECRET environment variable must be at least 32 characters.\n" +
+      "Generate one with: openssl rand -base64 32\n" +
+      "See .env.example for details."
+  );
+}
+
 // Session timeout configuration (with defaults)
 const IDLE_TIMEOUT_MINUTES = parseInt(
   process.env.SESSION_IDLE_TIMEOUT_MINUTES || "30",
@@ -26,7 +36,7 @@ const ABSOLUTE_TIMEOUT_HOURS = parseInt(
 
 // Session configuration
 const sessionOptions = {
-  password: process.env.SESSION_SECRET!,
+  password: sessionSecret,
   cookieName: "fido2-session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",
@@ -90,9 +100,13 @@ export async function getCurrentUser(): Promise<{
   }
 
   const session = await getSession();
+  // After isSessionValid() returns true, userId and username are guaranteed to exist
+  if (!session.userId || !session.username) {
+    return null;
+  }
   return {
-    userId: session.userId!,
-    username: session.username!,
+    userId: session.userId,
+    username: session.username,
   };
 }
 

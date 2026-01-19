@@ -78,7 +78,9 @@ jobs:
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm exec playwright install chromium
+      - run: mkdir -p ./data
       - run: pnpm db:generate && pnpm db:migrate
       - run: pnpm test:e2e
     env:
+      DATABASE_PATH: ./data/app.db
       SESSION_SECRET: test-secret-at-least-32-characters-long
