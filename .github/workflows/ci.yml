@@ -53,7 +53,11 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
+      - run: mkdir -p ./data
       - run: pnpm build
+    env:
+      DATABASE_PATH: ./data/app.db
+      SESSION_SECRET: test-secret-at-least-32-characters-long
 
   test:
     runs-on: ubuntu-latest
@@ -78,7 +82,13 @@ jobs:
           cache: "pnpm"
       - run: pnpm install
       - run: pnpm exec playwright install chromium
+      - name: Create .env.local for CI
+        run: |
+          echo "DATABASE_PATH=./data/app.db" >> .env.local
+          echo "SESSION_SECRET=test-secret-at-least-32-characters-long" >> .env.local
+      - run: mkdir -p ./data
       - run: pnpm db:generate && pnpm db:migrate
       - run: pnpm test:e2e
     env:
+      DATABASE_PATH: ./data/app.db
       SESSION_SECRET: test-secret-at-least-32-characters-long

@@ -4,12 +4,31 @@ import * as schema from "./schema";
 import path from "path";
 import fs from "fs";
 
-const databasePath = process.env.DATABASE_PATH || "./data/app.db";
+// Validate DATABASE_PATH is set
+const databasePath = process.env.DATABASE_PATH;
+if (!databasePath || databasePath.trim() === "") {
+  throw new Error(
+    "DATABASE_PATH environment variable is required.\n" +
+      "Create a .env.local file - see .env.example for details."
+  );
+}
 
-// Ensure the directory exists
+// Validate the directory exists and is writable
 const dir = path.dirname(databasePath);
 if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
+  throw new Error(
+    `DATABASE_PATH directory does not exist: ${dir}\n` +
+      "Create the directory or update DATABASE_PATH in .env.local"
+  );
+}
+
+try {
+  fs.accessSync(dir, fs.constants.W_OK);
+} catch {
+  throw new Error(
+    `DATABASE_PATH directory is not writable: ${dir}\n` +
+      "Check permissions or update DATABASE_PATH in .env.local"
+  );
 }
 
 const sqlite = new Database(databasePath);
