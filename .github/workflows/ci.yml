@@ -53,7 +53,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm rebuild better-sqlite3
+      - run: pnpm rebuild better-sqlite3 --force
       - run: mkdir -p ./data
       - run: pnpm build
     env:
@@ -82,7 +82,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm rebuild better-sqlite3
+      - run: pnpm rebuild better-sqlite3 --force
       - run: pnpm exec playwright install chromium
       # Playwright config handles env vars, db setup, and dev server
       - run: pnpm test:e2e
