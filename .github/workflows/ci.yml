@@ -51,9 +51,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "pnpm"
-      - run: pnpm install --ignore-scripts
-      - run: pnpm rebuild
+      - run: pnpm install
       - run: mkdir -p ./data
       - run: pnpm build
     env:
@@ -80,9 +78,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "pnpm"
-      - run: pnpm install --ignore-scripts
-      - run: pnpm rebuild
+      - run: pnpm install
       - run: pnpm exec playwright install chromium
       # Playwright config handles env vars, db setup, and dev server
       - run: pnpm test:e2e
