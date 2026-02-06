@@ -51,6 +51,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - run: pnpm store prune
       - run: pnpm install
       - run: mkdir -p ./data
       - run: pnpm build
@@ -78,6 +79,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+      - run: pnpm store prune
       - run: pnpm install
       - run: pnpm exec playwright install chromium
       # Playwright config handles env vars, db setup, and dev server
