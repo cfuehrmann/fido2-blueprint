@@ -1,40 +1,21 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
-import { db, schema } from "@/server/db";
-import { eq } from "drizzle-orm";
-import {
-  getUserCredentials,
-  deleteCredential,
-  renameCredential,
-  createRegistrationOptions,
-  verifyAndStoreRegistration,
-} from "@repo/fido2-auth";
-import { webauthnConfig } from "@/server/auth/config";
 import { storeChallenge, getAndClearChallenge } from "@/server/auth/session";
+import { auth } from "@/server/auth";
+import { AuthError } from "@repo/fido2-auth";
 
 export const profileRouter = router({
   // Get current user's profile
   get: protectedProcedure.query(async ({ ctx }) => {
-    const user = await db
-      .select({
-        id: schema.users.id,
-        username: schema.users.username,
-        displayName: schema.users.displayName,
-        createdAt: schema.users.createdAt,
-      })
-      .from(schema.users)
-      .where(eq(schema.users.id, ctx.user.userId))
-      .get();
-
-    if (!user) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: "User not found",
-      });
+    try {
+      return await auth.getUser(ctx.user.userId);
+    } catch (error) {
+      if (error instanceof AuthError && error.code === "USER_NOT_FOUND") {
+        throw new TRPCError({ code: "NOT_FOUND", message: error.message });
+      }
+      throw error;
     }
-
-    return user;
   }),
 
   // Update display name
@@ -48,20 +29,13 @@ export const profileRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await db
-        .update(schema.users)
-        .set({
-          displayName: input.displayName,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.users.id, ctx.user.userId));
-
+      await auth.updateDisplayName(ctx.user.userId, input.displayName);
       return { success: true };
     }),
 
   // Get user's credentials
   getCredentials: protectedProcedure.query(async ({ ctx }) => {
-    const credentials = await getUserCredentials(db, ctx.user.userId);
+    const credentials = await auth.getCredentials(ctx.user.userId);
     return credentials.map((cred) => ({
       id: cred.id,
       name: cred.name,
@@ -76,9 +50,7 @@ export const profileRouter = router({
 
   // Start adding a new passkey
   addPasskeyStart: protectedProcedure.mutation(async ({ ctx }) => {
-    const options = await createRegistrationOptions(
-      db,
-      webauthnConfig,
+    const { options } = await auth.addPasskeyStart(
       ctx.user.userId,
       ctx.user.username
     );
@@ -120,19 +92,19 @@ export const profileRouter = router({
       }
 
       try {
-        await verifyAndStoreRegistration(
-          db,
-          webauthnConfig,
+        await auth.addPasskeyFinish(
           ctx.user.userId,
           challengeData.challenge,
           input.credential
         );
       } catch (error) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            error instanceof Error ? error.message : "Failed to add passkey",
-        });
+        if (error instanceof AuthError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message,
+          });
+        }
+        throw error;
       }
 
       return { success: true };
@@ -143,15 +115,15 @@ export const profileRouter = router({
     .input(z.object({ credentialId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        await deleteCredential(db, ctx.user.userId, input.credentialId);
+        await auth.removeCredential(ctx.user.userId, input.credentialId);
       } catch (error) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to delete credential",
-        });
+        if (error instanceof AuthError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message,
+          });
+        }
+        throw error;
       }
 
       return { success: true };
@@ -167,20 +139,19 @@ export const profileRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await renameCredential(
-          db,
+        await auth.renameCredential(
           ctx.user.userId,
           input.credentialId,
           input.name
         );
       } catch (error) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Failed to rename credential",
-        });
+        if (error instanceof AuthError) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error.message,
+          });
+        }
+        throw error;
       }
 
       return { success: true };

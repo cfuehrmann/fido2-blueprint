@@ -38,18 +38,12 @@ importers:
       '@trpc/server':
         specifier: ^11.9.0
         version: 11.9.0(typescript@5.9.3)
-      better-sqlite3:
-        specifier: ^12.6.2
-        version: 12.6.2
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      drizzle-orm:
-        specifier: ^0.45.1
-        version: 0.45.1(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)
       iron-session:
         specifier: ^8.0.4
         version: 8.0.4
@@ -81,9 +75,6 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.1.18
         version: 4.1.18
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
       '@types/node':
         specifier: ^24.10.11
         version: 24.10.12

@@ -1,17 +1,4 @@
-// Database schema
-export * from "./db/schema";
-
-// Validation
+// Client-safe exports (no Node.js dependencies)
 export { usernameSchema } from "./validation";
-
-// FIDO2 / WebAuthn
-export {
-  createRegistrationOptions,
-  verifyAndStoreRegistration,
-  createAuthenticationOptions,
-  verifyAuthentication,
-  getUserCredentials,
-  renameCredential,
-  deleteCredential,
-  type WebAuthnConfig,
-} from "./fido2";
+export { AuthError, type AuthErrorCode } from "./errors";
+export type { WebAuthnConfig } from "./fido2";

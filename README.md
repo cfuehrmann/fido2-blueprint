@@ -8,7 +8,7 @@ This is a monorepo using pnpm workspaces:
 
 ```
 packages/
-  fido2-auth/       Shared FIDO2 authentication package (placeholder, populated in a future PR)
+  fido2-auth/       Shared FIDO2 authentication package
 apps/
   fido2-web-demo/   Next.js demo app with passkey authentication
 ```
