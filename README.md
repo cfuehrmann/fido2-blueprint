@@ -2,6 +2,17 @@
 
 A minimalistic web application demonstrating passwordless authentication with FIDO2/WebAuthn passkeys. Intended as a starting point for building secure, modern web applications.
 
+## Repository Structure
+
+This is a monorepo using pnpm workspaces:
+
+```
+packages/
+  fido2-auth/       Shared FIDO2 authentication package (placeholder, populated in a future PR)
+apps/
+  fido2-web-demo/   Next.js demo app with passkey authentication
+```
+
 ## Why This Exists
 
 Passwords are a security liability. FIDO2/WebAuthn passkeys offer phishing-resistant, passwordless authentication that's both more secure and more convenient. This blueprint provides a working implementation you can learn from and build upon.
@@ -13,14 +24,14 @@ Passwords are a security liability. FIDO2/WebAuthn passkeys offer phishing-resis
 pnpm install
 
 # Set up the database
-pnpm db:generate
-pnpm db:migrate
+pnpm --filter fido2-web-demo db:generate
+pnpm --filter fido2-web-demo db:migrate
 
 # Start development server
-pnpm dev
+pnpm --filter fido2-web-demo dev
 ```
 
-Copy `.env.example` to `.env.local` and generate a new `SESSION_SECRET`:
+Copy `apps/fido2-web-demo/.env.example` to `apps/fido2-web-demo/.env.local` and generate a new `SESSION_SECRET`:
 
 ```bash
 openssl rand -base64 32
@@ -32,13 +43,13 @@ End-to-end tests are central to this project. They use Playwright with a virtual
 
 ```bash
 # Run E2E tests
-pnpm test:e2e
+pnpm --filter fido2-web-demo test:e2e
 
 # Run with browser visible
-pnpm test:e2e --headed
+pnpm --filter fido2-web-demo test:e2e --headed
 
 # Run unit tests
-pnpm test
+pnpm --filter fido2-web-demo test
 ```
 
 **The E2E tests are the safety net for refactoring.** They test actual user flows (registration, login, profile management) through a real browser. Keep them passing and up to date.
@@ -120,7 +131,7 @@ Modern passkeys sync across devices automatically (via iCloud Keychain, Google P
    mkdir /path/to/fido2-data
    ```
 
-2. **Create `.env.local`**:
+2. **Create `apps/fido2-web-demo/.env.local`**:
 
    ```bash
    SESSION_SECRET=$(openssl rand -base64 32)
@@ -134,13 +145,13 @@ Modern passkeys sync across devices automatically (via iCloud Keychain, Google P
 
    ```bash
    pnpm install
-   pnpm build
-   DATABASE_PATH=/path/to/fido2-data/app.db pnpm db:migrate
+   pnpm --filter fido2-web-demo build
+   DATABASE_PATH=/path/to/fido2-data/app.db pnpm --filter fido2-web-demo db:migrate
    ```
 
 4. **Start the server** using the production script:
    ```bash
-   PORT=3001 HOSTNAME=127.0.0.1 ./scripts/start-prod.sh
+   PORT=3001 HOSTNAME=127.0.0.1 ./apps/fido2-web-demo/scripts/start-prod.sh
    ```
 
 ### systemd Service Example
@@ -153,8 +164,8 @@ After=network.target
 [Service]
 Type=simple
 User=youruser
-WorkingDirectory=/path/to/fido2-blueprint
-ExecStart=/path/to/fido2-blueprint/scripts/start-prod.sh
+WorkingDirectory=/path/to/fido2-blueprint/apps/fido2-web-demo
+ExecStart=/path/to/fido2-blueprint/apps/fido2-web-demo/scripts/start-prod.sh
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
@@ -193,7 +204,7 @@ When developing on a deployed server (e.g., testing passkeys on a mobile device)
 **Option 1: Rebuild and restart** (production mode)
 
 ```bash
-pnpm build
+pnpm --filter fido2-web-demo build
 sudo systemctl restart fido2-blueprint
 ```
 
@@ -201,7 +212,7 @@ sudo systemctl restart fido2-blueprint
 
 ```bash
 sudo systemctl stop fido2-blueprint
-PORT=3001 pnpm dev
+PORT=3001 pnpm --filter fido2-web-demo dev
 # Ctrl+C when done, then restart production:
 sudo systemctl start fido2-blueprint
 ```
