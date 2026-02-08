@@ -9,7 +9,8 @@ import {
   renameCredential,
   createRegistrationOptions,
   verifyAndStoreRegistration,
-} from "@/server/auth/fido2";
+} from "@repo/fido2-auth";
+import { webauthnConfig } from "@/server/auth/config";
 import { storeChallenge, getAndClearChallenge } from "@/server/auth/session";
 
 export const profileRouter = router({
@@ -60,7 +61,7 @@ export const profileRouter = router({
 
   // Get user's credentials
   getCredentials: protectedProcedure.query(async ({ ctx }) => {
-    const credentials = await getUserCredentials(ctx.user.userId);
+    const credentials = await getUserCredentials(db, ctx.user.userId);
     return credentials.map((cred) => ({
       id: cred.id,
       name: cred.name,
@@ -76,6 +77,8 @@ export const profileRouter = router({
   // Start adding a new passkey
   addPasskeyStart: protectedProcedure.mutation(async ({ ctx }) => {
     const options = await createRegistrationOptions(
+      db,
+      webauthnConfig,
       ctx.user.userId,
       ctx.user.username
     );
@@ -118,6 +121,8 @@ export const profileRouter = router({
 
       try {
         await verifyAndStoreRegistration(
+          db,
+          webauthnConfig,
           ctx.user.userId,
           challengeData.challenge,
           input.credential
@@ -138,7 +143,7 @@ export const profileRouter = router({
     .input(z.object({ credentialId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        await deleteCredential(ctx.user.userId, input.credentialId);
+        await deleteCredential(db, ctx.user.userId, input.credentialId);
       } catch (error) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -162,7 +167,12 @@ export const profileRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        await renameCredential(ctx.user.userId, input.credentialId, input.name);
+        await renameCredential(
+          db,
+          ctx.user.userId,
+          input.credentialId,
+          input.name
+        );
       } catch (error) {
         throw new TRPCError({
           code: "BAD_REQUEST",

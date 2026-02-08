@@ -16,7 +16,8 @@ import {
   verifyAndStoreRegistration,
   createAuthenticationOptions,
   verifyAuthentication,
-} from "@/server/auth/fido2";
+} from "@repo/fido2-auth";
+import { webauthnConfig } from "@/server/auth/config";
 import { randomUUID } from "crypto";
 import { usernameSchema } from "@/lib/validation";
 
@@ -50,7 +51,12 @@ export const authRouter = router({
       const userId = randomUUID();
 
       // Generate registration options
-      const options = await createRegistrationOptions(userId, username);
+      const options = await createRegistrationOptions(
+        db,
+        webauthnConfig,
+        userId,
+        username
+      );
 
       // Store challenge and pending user data in session (binds them cryptographically)
       await storeChallenge(options.challenge, "registration", userId, username);
@@ -105,7 +111,13 @@ export const authRouter = router({
 
       // Verify the registration and store credential
       try {
-        await verifyAndStoreRegistration(userId, challenge, credential);
+        await verifyAndStoreRegistration(
+          db,
+          webauthnConfig,
+          userId,
+          challenge,
+          credential
+        );
       } catch (error) {
         // Rollback: delete the user if credential storage fails
         await db.delete(schema.users).where(eq(schema.users.id, userId));
@@ -128,7 +140,7 @@ export const authRouter = router({
   loginStart: publicProcedure.mutation(async () => {
     // Generate authentication options without allowCredentials
     // This allows the authenticator to show all discoverable credentials
-    const options = await createAuthenticationOptions();
+    const options = await createAuthenticationOptions(webauthnConfig);
 
     // Store only the challenge (no user binding for usernameless flow)
     await storeChallengeUsernameless(options.challenge);
@@ -158,6 +170,8 @@ export const authRouter = router({
       // Verify the authentication and get user info from credential
       try {
         const { userId, username } = await verifyAuthentication(
+          db,
+          webauthnConfig,
           challenge,
           credential
         );
