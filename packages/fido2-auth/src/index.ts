@@ -1,3 +1,5 @@
-// @repo/fido2-auth — Shared FIDO2 authentication package
-// This package will be populated in Phase 2+
-export {};
+// Database schema
+export * from "./db/schema";
+
+// Validation
+export { usernameSchema } from "./validation";
