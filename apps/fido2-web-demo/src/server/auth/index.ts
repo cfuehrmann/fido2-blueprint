@@ -1,6 +1,4 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "@repo/fido2-auth";
+import { createAuth } from "@repo/fido2-auth/server";
 import path from "path";
 import fs from "fs";
 
@@ -31,11 +29,11 @@ try {
   );
 }
 
-const sqlite = new Database(databasePath);
-
-// Enable foreign keys
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
-
-export { schema };
+export const auth = createAuth({
+  databasePath,
+  webauthn: {
+    rpID: process.env.WEBAUTHN_RP_ID || "localhost",
+    rpName: process.env.WEBAUTHN_RP_NAME || "FIDO2 Blueprint",
+    origin: process.env.WEBAUTHN_ORIGIN || "http://localhost:3000",
+  },
+});
