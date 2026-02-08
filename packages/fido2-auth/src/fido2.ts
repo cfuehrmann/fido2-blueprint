@@ -8,16 +8,22 @@ import {
   type AuthenticationResponseJSON,
   type AuthenticatorTransportFuture,
 } from "@simplewebauthn/server";
-import { db, schema } from "@/server/db";
+import { type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { eq } from "drizzle-orm";
+import * as schema from "./db/schema";
 
-// WebAuthn Relying Party configuration from environment
-const rpID = process.env.WEBAUTHN_RP_ID || "localhost";
-const rpName = process.env.WEBAUTHN_RP_NAME || "FIDO2 Blueprint";
-const origin = process.env.WEBAUTHN_ORIGIN || "http://localhost:3000";
+type AuthDatabase = BetterSQLite3Database<typeof schema>;
+
+export interface WebAuthnConfig {
+  rpID: string;
+  rpName: string;
+  origin: string;
+}
 
 // Generate registration options for a new user
 export async function createRegistrationOptions(
+  db: AuthDatabase,
+  config: WebAuthnConfig,
   userId: string,
   username: string
 ) {
@@ -31,8 +37,8 @@ export async function createRegistrationOptions(
     .where(eq(schema.credentials.userId, userId));
 
   const options = await generateRegistrationOptions({
-    rpName,
-    rpID,
+    rpName: config.rpName,
+    rpID: config.rpID,
     userID: new TextEncoder().encode(userId),
     userName: username,
     userDisplayName: username,
@@ -59,7 +65,10 @@ export async function createRegistrationOptions(
 }
 
 // Generate a passkey name based on existing credential count
-async function generatePasskeyName(userId: string): Promise<string> {
+async function generatePasskeyName(
+  db: AuthDatabase,
+  userId: string
+): Promise<string> {
   const existingCredentials = await db
     .select({ id: schema.credentials.id })
     .from(schema.credentials)
@@ -70,6 +79,8 @@ async function generatePasskeyName(userId: string): Promise<string> {
 
 // Verify registration response and store credential
 export async function verifyAndStoreRegistration(
+  db: AuthDatabase,
+  config: WebAuthnConfig,
   userId: string,
   expectedChallenge: string,
   response: RegistrationResponseJSON
@@ -77,8 +88,8 @@ export async function verifyAndStoreRegistration(
   const verification = await verifyRegistrationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: origin,
-    expectedRPID: rpID,
+    expectedOrigin: config.origin,
+    expectedRPID: config.rpID,
   });
 
   if (!verification.verified || !verification.registrationInfo) {
@@ -88,7 +99,7 @@ export async function verifyAndStoreRegistration(
   const { registrationInfo } = verification;
 
   // Generate a name for this passkey
-  const name = await generatePasskeyName(userId);
+  const name = await generatePasskeyName(db, userId);
 
   // Store the credential
   await db.insert(schema.credentials).values({
@@ -110,9 +121,9 @@ export async function verifyAndStoreRegistration(
 }
 
 // Generate authentication options for usernameless flow
-export async function createAuthenticationOptions() {
+export async function createAuthenticationOptions(config: WebAuthnConfig) {
   const options = await generateAuthenticationOptions({
-    rpID,
+    rpID: config.rpID,
     allowCredentials: [], // Empty = show all discoverable credentials for this rpId
     userVerification: "required",
   });
@@ -122,6 +133,8 @@ export async function createAuthenticationOptions() {
 
 // Verify authentication response and return user info (for usernameless flow)
 export async function verifyAuthentication(
+  db: AuthDatabase,
+  config: WebAuthnConfig,
   expectedChallenge: string,
   response: AuthenticationResponseJSON
 ): Promise<{ verified: boolean; userId: string; username: string }> {
@@ -150,8 +163,8 @@ export async function verifyAuthentication(
   const verification = await verifyAuthenticationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: origin,
-    expectedRPID: rpID,
+    expectedOrigin: config.origin,
+    expectedRPID: config.rpID,
     credential: {
       id: credential.id,
       publicKey: new Uint8Array(credential.publicKey),
@@ -179,7 +192,7 @@ export async function verifyAuthentication(
 }
 
 // Get all credentials for a user (for the profile page)
-export async function getUserCredentials(userId: string) {
+export async function getUserCredentials(db: AuthDatabase, userId: string) {
   return db
     .select({
       id: schema.credentials.id,
@@ -197,6 +210,7 @@ export async function getUserCredentials(userId: string) {
 
 // Rename a credential
 export async function renameCredential(
+  db: AuthDatabase,
   userId: string,
   credentialId: string,
   newName: string
@@ -219,7 +233,11 @@ export async function renameCredential(
 }
 
 // Delete a credential (user must have at least one remaining)
-export async function deleteCredential(userId: string, credentialId: string) {
+export async function deleteCredential(
+  db: AuthDatabase,
+  userId: string,
+  credentialId: string
+) {
   // Check how many credentials the user has
   const credentials = await db
     .select({ id: schema.credentials.id })

@@ -26,9 +26,6 @@ importers:
       '@simplewebauthn/browser':
         specifier: ^13.2.2
         version: 13.2.2
-      '@simplewebauthn/server':
-        specifier: ^13.2.2
-        version: 13.2.2
       '@tanstack/react-query':
         specifier: ^5.90.20
         version: 5.90.20(react@19.2.4)
@@ -126,6 +123,9 @@ importers:
 
   packages/fido2-auth:
     dependencies:
+      '@simplewebauthn/server':
+        specifier: ^13.2.2
+        version: 13.2.2
       better-sqlite3:
         specifier: ^12.6.2
         version: 12.6.2
