@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "mkdir -p ./data && pnpm db:generate && pnpm exec tsx src/server/db/migrate.ts && pnpm dev --port 3333",
+      "mkdir -p ./data && pnpm db:generate && pnpm exec tsx ../../packages/fido2-auth/src/db/migrate.ts && pnpm dev --port 3333",
     url: "http://localhost:3333",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
