@@ -9,7 +9,7 @@ import {
 } from "@simplewebauthn/browser";
 import { TRPCClientError } from "@trpc/client";
 import { trpc } from "@/lib/trpc";
-import { usernameSchema } from "@/lib/validation";
+import { usernameSchema } from "@repo/fido2-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
