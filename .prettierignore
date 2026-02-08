@@ -12,7 +12,7 @@ data/
 
 # Generated files
 pnpm-lock.yaml
-drizzle/
+**/drizzle/
 
 # Test artifacts
 test-results/

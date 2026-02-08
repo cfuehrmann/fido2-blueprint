@@ -29,7 +29,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm lint
+      - run: pnpm --filter fido2-web-demo lint
 
   knip:
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm knip
+      - run: pnpm --filter fido2-web-demo knip
 
   build:
     runs-on: ubuntu-latest
@@ -53,8 +53,8 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: mkdir -p ./data
-      - run: pnpm build
+      - run: mkdir -p apps/fido2-web-demo/data
+      - run: pnpm --filter fido2-web-demo build
     env:
       DATABASE_PATH: ./data/app.db
       SESSION_SECRET: test-secret-at-least-32-characters-long
@@ -69,7 +69,7 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm test
+      - run: pnpm --filter fido2-web-demo test
 
   e2e:
     runs-on: ubuntu-latest
@@ -83,4 +83,4 @@ jobs:
       - run: pnpm install
       - run: pnpm exec playwright install chromium
       # Playwright config handles env vars, db setup, and dev server
-      - run: pnpm test:e2e
+      - run: pnpm --filter fido2-web-demo test:e2e
