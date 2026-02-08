@@ -81,6 +81,6 @@ jobs:
           node-version: "24"
           cache: "pnpm"
       - run: pnpm install
-      - run: pnpm exec playwright install chromium
+      - run: pnpm --filter fido2-web-demo exec playwright install chromium
       # Playwright config handles env vars, db setup, and dev server
       - run: pnpm --filter fido2-web-demo test:e2e
