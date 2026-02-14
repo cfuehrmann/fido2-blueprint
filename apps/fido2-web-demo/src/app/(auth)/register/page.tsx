@@ -28,6 +28,66 @@ function validateUsername(username: string): string | null {
   return null;
 }
 
+function RegisterCard({
+  username,
+  onUsernameChange,
+  error,
+  isRegistering,
+  onSubmit,
+}: {
+  username?: string;
+  onUsernameChange?: (value: string) => void;
+  error?: string | null;
+  isRegistering?: boolean;
+  onSubmit?: (e: React.FormEvent) => void;
+}) {
+  const disabled = isRegistering || !onSubmit;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Create Account</CardTitle>
+        <CardDescription>
+          Choose a username and create a passkey
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={onSubmit} noValidate>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              placeholder="johndoe"
+              value={username ?? ""}
+              onChange={
+                onUsernameChange
+                  ? (e) => onUsernameChange(e.target.value)
+                  : undefined
+              }
+              disabled={disabled}
+              autoFocus={!!onSubmit}
+            />
+          </div>
+          {error && <div className="text-sm text-destructive">{error}</div>}
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4 pt-6">
+          <Button type="submit" className="w-full" disabled={disabled}>
+            {isRegistering ? "Creating account..." : "Create account"}
+          </Button>
+          <p className="text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </form>
+    </Card>
+  );
+}
+
 function RegisterForm() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -87,85 +147,19 @@ function RegisterForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>
-          Choose a username and create a passkey
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleRegister} noValidate>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="johndoe"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={isRegistering}
-              autoFocus
-            />
-          </div>
-          {error && <div className="text-sm text-destructive">{error}</div>}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-4 pt-6">
-          <Button type="submit" className="w-full" disabled={isRegistering}>
-            {isRegistering ? "Creating account..." : "Create account"}
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
-  );
-}
-
-function RegisterFormFallback() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>
-          Choose a username and create a passkey
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input
-            id="username"
-            name="username"
-            type="text"
-            placeholder="johndoe"
-            disabled
-          />
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-4 pt-6">
-        <Button className="w-full" disabled>
-          Create account
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <RegisterCard
+      username={username}
+      onUsernameChange={setUsername}
+      error={error}
+      isRegistering={isRegistering}
+      onSubmit={handleRegister}
+    />
   );
 }
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<RegisterFormFallback />}>
+    <Suspense fallback={<RegisterCard />}>
       <RegisterForm />
     </Suspense>
   );

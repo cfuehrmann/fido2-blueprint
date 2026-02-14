@@ -17,6 +17,45 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+function LoginCard({
+  error,
+  isLoading,
+  onLogin,
+}: {
+  error?: string | null;
+  isLoading?: boolean;
+  onLogin?: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Sign In</CardTitle>
+        <CardDescription>Use a passkey to sign in securely</CardDescription>
+      </CardHeader>
+      {error && (
+        <CardContent>
+          <div className="text-sm text-destructive">{error}</div>
+        </CardContent>
+      )}
+      <CardFooter className="flex flex-col space-y-4">
+        <Button
+          onClick={onLogin}
+          className="w-full"
+          disabled={isLoading || !onLogin}
+        >
+          {isLoading ? "Authenticating..." : "Sign in with passkey"}
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-primary hover:underline">
+            Create one
+          </Link>
+        </p>
+      </CardFooter>
+    </Card>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const utils = trpc.useUtils();
@@ -61,56 +100,13 @@ function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>Use a passkey to sign in securely</CardDescription>
-      </CardHeader>
-      {error && (
-        <CardContent>
-          <div className="text-sm text-destructive">{error}</div>
-        </CardContent>
-      )}
-      <CardFooter className="flex flex-col space-y-4">
-        <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
-          {isLoading ? "Authenticating..." : "Sign in with passkey"}
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary hover:underline">
-            Create one
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
-  );
-}
-
-function LoginFormFallback() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sign In</CardTitle>
-        <CardDescription>Use a passkey to sign in securely</CardDescription>
-      </CardHeader>
-      <CardFooter className="flex flex-col space-y-4">
-        <Button className="w-full" disabled>
-          Sign in with passkey
-        </Button>
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary hover:underline">
-            Create one
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <LoginCard error={error} isLoading={isLoading} onLogin={handleLogin} />
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoginFormFallback />}>
+    <Suspense fallback={<LoginCard />}>
       <LoginForm />
     </Suspense>
   );
