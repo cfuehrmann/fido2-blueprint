@@ -24,13 +24,10 @@ async function setupVirtualAuthenticator(page: Page) {
 
 const test = base;
 
-// Helper: Navigate to registration view and fill username
+// Helper: Navigate to registration page and fill username
 async function goToRegistration(page: Page, username: string) {
-  await page.goto("/login");
+  await page.goto("/register");
   await page.waitForLoadState("networkidle");
-
-  // Click "Create one" to switch to registration view
-  await page.locator('button:has-text("Create one")').click();
 
   // Fill in username
   await page.locator('input[name="username"]').fill(username);
@@ -89,11 +86,8 @@ test.describe("Authentication", () => {
   test("shows validation error for empty username on registration", async ({
     page,
   }) => {
-    await page.goto("/login");
+    await page.goto("/register");
     await page.waitForLoadState("networkidle");
-
-    // Click "Create one" to switch to registration view
-    await page.locator('button:has-text("Create one")').click();
 
     // Leave username empty and click "Create account"
     await page.locator('button:has-text("Create account")').click();
@@ -114,11 +108,8 @@ test.describe("Authentication", () => {
   test("shows validation error for short username on registration", async ({
     page,
   }) => {
-    await page.goto("/login");
+    await page.goto("/register");
     await page.waitForLoadState("networkidle");
-
-    // Click "Create one" to switch to registration view
-    await page.locator('button:has-text("Create one")').click();
 
     // Enter too-short username
     await page.locator('input[name="username"]').fill("ab");
@@ -135,11 +126,8 @@ test.describe("Authentication", () => {
   test("shows validation error for invalid username characters on registration", async ({
     page,
   }) => {
-    await page.goto("/login");
+    await page.goto("/register");
     await page.waitForLoadState("networkidle");
-
-    // Click "Create one" to switch to registration view
-    await page.locator('button:has-text("Create one")').click();
 
     // Enter username with invalid characters
     await page.locator('input[name="username"]').fill("test@user");
@@ -166,12 +154,7 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL("/login", { timeout: 10000 });
 
     // Try to register with same username
-    await page.waitForLoadState("networkidle");
-
-    // Click "Create one" to switch to registration view
-    await page.locator('button:has-text("Create one")').click();
-
-    await page.locator('input[name="username"]').fill(username);
+    await goToRegistration(page, username);
     await page.locator('button:has-text("Create account")').click();
 
     // Should show error about username taken
@@ -180,33 +163,33 @@ test.describe("Authentication", () => {
     });
   });
 
-  test("can toggle between login and registration views", async ({ page }) => {
+  test("login page links to register and vice versa", async ({ page }) => {
     await page.goto("/login");
     await page.waitForLoadState("networkidle");
 
-    // Should start on login view (no username field visible)
+    // Should see login view
     await expect(
       page.locator('button:has-text("Sign in with passkey")')
     ).toBeVisible();
-    await expect(page.locator('input[name="username"]')).not.toBeVisible();
 
-    // Click "Create one" to switch to registration view
-    await page.locator('button:has-text("Create one")').click();
+    // Click "Create one" link to navigate to register
+    await page.locator('a:has-text("Create one")').click();
+    await expect(page).toHaveURL("/register");
 
-    // Should now see registration view with username field
+    // Should see registration view with username field
     await expect(page.locator('input[name="username"]')).toBeVisible();
     await expect(
       page.locator('button:has-text("Create account")')
     ).toBeVisible();
 
-    // Click "Sign in" to switch back to login view
-    await page.locator('button:has-text("Sign in")').click();
+    // Click "Sign in" link to navigate back to login
+    await page.locator('a:has-text("Sign in")').click();
+    await expect(page).toHaveURL("/login");
 
     // Should be back on login view
     await expect(
       page.locator('button:has-text("Sign in with passkey")')
     ).toBeVisible();
-    await expect(page.locator('input[name="username"]')).not.toBeVisible();
   });
 });
 
