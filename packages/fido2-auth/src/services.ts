@@ -1,6 +1,10 @@
 import { type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import type {
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from "@simplewebauthn/server";
 import * as schema from "./db/schema";
 import {
   createRegistrationOptions as fido2CreateRegistrationOptions,
@@ -80,8 +84,7 @@ export async function registerFinish(
       config,
       userId,
       challenge,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      authenticatorResponse as any
+      authenticatorResponse as RegistrationResponseJSON
     );
   } catch (error) {
     // Rollback: delete the user if credential storage fails
@@ -115,8 +118,7 @@ export async function loginFinish(
       db,
       config,
       challenge,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      authenticatorResponse as any
+      authenticatorResponse as AuthenticationResponseJSON
     );
     return { userId: result.userId, username: result.username };
   } catch (error) {
@@ -198,8 +200,7 @@ export async function addPasskeyFinish(
       config,
       userId,
       challenge,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      authenticatorResponse as any
+      authenticatorResponse as RegistrationResponseJSON
     );
   } catch (error) {
     throw new AuthError(
