@@ -33,13 +33,21 @@ export function createAuth({ databasePath, webauthn }: CreateAuthOptions) {
       userId: string,
       username: string,
       challenge: string,
-      credential: unknown
-    ) => registerFinish(db, webauthn, userId, username, challenge, credential),
+      authenticatorResponse: unknown
+    ) =>
+      registerFinish(
+        db,
+        webauthn,
+        userId,
+        username,
+        challenge,
+        authenticatorResponse
+      ),
 
     // Authentication
     loginStart: () => loginStart(webauthn),
-    loginFinish: (challenge: string, credential: unknown) =>
-      loginFinish(db, webauthn, challenge, credential),
+    loginFinish: (challenge: string, authenticatorResponse: unknown) =>
+      loginFinish(db, webauthn, challenge, authenticatorResponse),
 
     // User profile
     getUser: (userId: string) => getUser(db, userId),
@@ -53,8 +61,9 @@ export function createAuth({ databasePath, webauthn }: CreateAuthOptions) {
     addPasskeyFinish: (
       userId: string,
       challenge: string,
-      credential: unknown
-    ) => addPasskeyFinish(db, webauthn, userId, challenge, credential),
+      authenticatorResponse: unknown
+    ) =>
+      addPasskeyFinish(db, webauthn, userId, challenge, authenticatorResponse),
     removeCredential: (userId: string, credentialId: string) =>
       removeCredential(db, userId, credentialId),
     renameCredential: (userId: string, credentialId: string, newName: string) =>

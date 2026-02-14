@@ -71,7 +71,7 @@ export const profileRouter = router({
   addPasskeyFinish: protectedProcedure
     .input(
       z.object({
-        credential: z.any(), // RegistrationResponseJSON
+        authenticatorResponse: z.any(), // RegistrationResponseJSON
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -95,7 +95,7 @@ export const profileRouter = router({
         await auth.addPasskeyFinish(
           ctx.user.userId,
           challengeData.challenge,
-          input.credential
+          input.authenticatorResponse
         );
       } catch (error) {
         if (error instanceof AuthError) {

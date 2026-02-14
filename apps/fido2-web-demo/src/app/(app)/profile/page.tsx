@@ -71,8 +71,10 @@ export default function ProfilePage() {
 
     try {
       const { options } = await addPasskeyStart.mutateAsync();
-      const credential = await startRegistration({ optionsJSON: options });
-      await addPasskeyFinish.mutateAsync({ credential });
+      const authenticatorResponse = await startRegistration({
+        optionsJSON: options,
+      });
+      await addPasskeyFinish.mutateAsync({ authenticatorResponse });
     } catch (err) {
       if (err instanceof Error) {
         if (err.name === "NotAllowedError") {

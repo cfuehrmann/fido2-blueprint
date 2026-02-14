@@ -51,7 +51,7 @@ export async function registerFinish(
   userId: string,
   username: string,
   challenge: string,
-  credential: unknown
+  authenticatorResponse: unknown
 ) {
   // Check again that username isn't taken (race condition protection)
   const existing = await db
@@ -81,7 +81,7 @@ export async function registerFinish(
       userId,
       challenge,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      credential as any
+      authenticatorResponse as any
     );
   } catch (error) {
     // Rollback: delete the user if credential storage fails
@@ -108,7 +108,7 @@ export async function loginFinish(
   db: AuthDatabase,
   config: WebAuthnConfig,
   challenge: string,
-  credential: unknown
+  authenticatorResponse: unknown
 ) {
   try {
     const result = await fido2VerifyAuthentication(
@@ -116,7 +116,7 @@ export async function loginFinish(
       config,
       challenge,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      credential as any
+      authenticatorResponse as any
     );
     return { userId: result.userId, username: result.username };
   } catch (error) {
@@ -190,7 +190,7 @@ export async function addPasskeyFinish(
   config: WebAuthnConfig,
   userId: string,
   challenge: string,
-  credential: unknown
+  authenticatorResponse: unknown
 ) {
   try {
     await fido2VerifyAndStoreRegistration(
@@ -199,7 +199,7 @@ export async function addPasskeyFinish(
       userId,
       challenge,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      credential as any
+      authenticatorResponse as any
     );
   } catch (error) {
     throw new AuthError(

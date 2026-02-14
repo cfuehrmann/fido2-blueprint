@@ -48,7 +48,7 @@ export const authRouter = router({
   registerFinish: publicProcedure
     .input(
       z.object({
-        credential: z.any(), // RegistrationResponseJSON - validated by simplewebauthn
+        authenticatorResponse: z.any(), // RegistrationResponseJSON - validated by simplewebauthn
       })
     )
     .mutation(async ({ input }) => {
@@ -65,7 +65,7 @@ export const authRouter = router({
           challengeData.userId,
           challengeData.username,
           challengeData.challenge,
-          input.credential
+          input.authenticatorResponse
         );
 
         await createSession(userId, username);
@@ -94,7 +94,7 @@ export const authRouter = router({
   loginFinish: publicProcedure
     .input(
       z.object({
-        credential: z.any(), // AuthenticationResponseJSON
+        authenticatorResponse: z.any(), // AuthenticationResponseJSON
       })
     )
     .mutation(async ({ input }) => {
@@ -109,7 +109,7 @@ export const authRouter = router({
       try {
         const { userId, username } = await auth.loginFinish(
           challenge,
-          input.credential
+          input.authenticatorResponse
         );
 
         await createSession(userId, username);
