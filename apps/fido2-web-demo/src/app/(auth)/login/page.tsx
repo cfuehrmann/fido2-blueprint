@@ -75,11 +75,13 @@ function LoginForm() {
       const { options } = await loginStart.mutateAsync();
 
       // Step 2: Authenticate with passkey - browser shows all discoverable credentials
-      const credential = await startAuthentication({ optionsJSON: options });
+      const authenticatorResponse = await startAuthentication({
+        optionsJSON: options,
+      });
 
       // Step 3: Verify with server (user is identified by credential ID)
       await loginFinish.mutateAsync({
-        credential,
+        authenticatorResponse,
       });
 
       // Invalidate session cache before redirect to prevent race condition

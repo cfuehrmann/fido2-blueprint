@@ -117,11 +117,13 @@ function RegisterForm() {
       const { options } = await registerStart.mutateAsync({ username });
 
       // Step 2: Create credential with authenticator
-      const credential = await startRegistration({ optionsJSON: options });
+      const authenticatorResponse = await startRegistration({
+        optionsJSON: options,
+      });
 
       // Step 3: Verify with server and create account
       await registerFinish.mutateAsync({
-        credential,
+        authenticatorResponse,
       });
 
       // Invalidate session cache before redirect to prevent race condition

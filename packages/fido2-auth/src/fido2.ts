@@ -83,10 +83,10 @@ export async function verifyAndStoreRegistration(
   config: WebAuthnConfig,
   userId: string,
   expectedChallenge: string,
-  response: RegistrationResponseJSON
+  authenticatorResponse: RegistrationResponseJSON
 ): Promise<VerifiedRegistrationResponse> {
   const verification = await verifyRegistrationResponse({
-    response,
+    response: authenticatorResponse,
     expectedChallenge,
     expectedOrigin: config.origin,
     expectedRPID: config.rpID,
@@ -110,8 +110,8 @@ export async function verifyAndStoreRegistration(
     counter: registrationInfo.credential.counter,
     deviceType: registrationInfo.credentialDeviceType,
     backedUp: registrationInfo.credentialBackedUp,
-    transports: response.response.transports
-      ? JSON.stringify(response.response.transports)
+    transports: authenticatorResponse.response.transports
+      ? JSON.stringify(authenticatorResponse.response.transports)
       : null,
     createdAt: new Date(),
     lastUsedAt: null,
@@ -136,13 +136,13 @@ export async function verifyAuthentication(
   db: AuthDatabase,
   config: WebAuthnConfig,
   expectedChallenge: string,
-  response: AuthenticationResponseJSON
+  authenticatorResponse: AuthenticationResponseJSON
 ): Promise<{ verified: boolean; userId: string; username: string }> {
   // Look up credential by ID
   const credential = await db
     .select()
     .from(schema.credentials)
-    .where(eq(schema.credentials.id, response.id))
+    .where(eq(schema.credentials.id, authenticatorResponse.id))
     .get();
 
   if (!credential) {
@@ -161,7 +161,7 @@ export async function verifyAuthentication(
   }
 
   const verification = await verifyAuthenticationResponse({
-    response,
+    response: authenticatorResponse,
     expectedChallenge,
     expectedOrigin: config.origin,
     expectedRPID: config.rpID,
@@ -186,7 +186,7 @@ export async function verifyAuthentication(
       counter: verification.authenticationInfo.newCounter,
       lastUsedAt: new Date(),
     })
-    .where(eq(schema.credentials.id, response.id));
+    .where(eq(schema.credentials.id, authenticatorResponse.id));
 
   return { verified: true, userId: user.id, username: user.username };
 }
