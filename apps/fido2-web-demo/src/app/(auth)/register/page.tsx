@@ -39,7 +39,7 @@ function RegisterCard({
   onUsernameChange?: (value: string) => void;
   error?: string | null;
   isRegistering?: boolean;
-  onSubmit?: (e: React.FormEvent) => void;
+  onSubmit?: (e: React.SubmitEvent) => void;
 }) {
   const disabled = isRegistering || !onSubmit;
 
@@ -99,7 +99,7 @@ function RegisterForm() {
   const registerStart = trpc.auth.registerStart.useMutation();
   const registerFinish = trpc.auth.registerFinish.useMutation();
 
-  async function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e: React.SubmitEvent) {
     e.preventDefault();
     setError(null);
 

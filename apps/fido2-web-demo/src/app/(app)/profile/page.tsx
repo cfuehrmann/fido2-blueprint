@@ -55,7 +55,7 @@ export default function ProfilePage() {
   >(null);
   const [newCredentialName, setNewCredentialName] = useState("");
 
-  async function handleUpdateDisplayName(e: React.FormEvent) {
+  async function handleUpdateDisplayName(e: React.SubmitEvent) {
     e.preventDefault();
     try {
       await updateDisplayName.mutateAsync({ displayName });
