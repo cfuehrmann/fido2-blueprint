@@ -23,6 +23,10 @@ Passwords are a security liability. FIDO2/WebAuthn passkeys offer phishing-resis
 # Install dependencies
 pnpm install
 
+# Set up environment
+cp apps/fido2-web-demo/.env.example apps/fido2-web-demo/.env.local
+# Edit .env.local and set SESSION_SECRET (generate with: openssl rand -base64 32)
+
 # Set up the database
 pnpm --filter fido2-web-demo db:generate
 pnpm --filter fido2-web-demo db:migrate
@@ -31,13 +35,9 @@ pnpm --filter fido2-web-demo db:migrate
 pnpm --filter fido2-web-demo dev
 ```
 
-Copy `apps/fido2-web-demo/.env.example` to `apps/fido2-web-demo/.env.local` and generate a new `SESSION_SECRET`:
-
-```bash
-openssl rand -base64 32
-```
-
 ## Testing
+
+**Prerequisites:** Complete the environment setup from Quick Start (`.env.local` with `SESSION_SECRET` and `DATABASE_PATH`).
 
 End-to-end tests are central to this project. They use Playwright with a virtual WebAuthn authenticator, enabling realistic passkey flows without physical hardware.
 
