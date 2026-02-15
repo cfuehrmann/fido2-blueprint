@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { startAuthentication } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
-import { getErrorMessage, toBrowserAuthError } from "@/lib/errors";
+import { getErrorMessage, getBrowserAuthErrorCode } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,8 +90,8 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      const browserAuthError = toBrowserAuthError(err);
-      if (browserAuthError) {
+      const errorCode = getBrowserAuthErrorCode(err);
+      if (errorCode) {
         // Login only sees CANCELLED_OR_DENIED (no ALREADY_REGISTERED possible)
         setError("Cancelled or timed out");
         return;

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { startRegistration } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
-import { getErrorMessage, toBrowserAuthError } from "@/lib/errors";
+import { getErrorMessage, getBrowserAuthErrorCode } from "@/lib/errors";
 import { usernameSchema } from "@repo/fido2-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,9 +132,9 @@ function RegisterForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      const browserAuthError = toBrowserAuthError(err);
-      if (browserAuthError) {
-        switch (browserAuthError.code) {
+      const errorCode = getBrowserAuthErrorCode(err);
+      if (errorCode) {
+        switch (errorCode) {
           case "CANCELLED_OR_DENIED":
             setError("Cancelled or timed out");
             break;

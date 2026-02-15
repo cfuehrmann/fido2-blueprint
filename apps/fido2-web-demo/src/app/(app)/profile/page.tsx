@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
-import { toBrowserAuthError } from "@/lib/errors";
+import { getBrowserAuthErrorCode } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -77,9 +77,9 @@ export default function ProfilePage() {
       });
       await addPasskeyFinish.mutateAsync({ authenticatorResponse });
     } catch (err) {
-      const browserAuthError = toBrowserAuthError(err);
-      if (browserAuthError) {
-        switch (browserAuthError.code) {
+      const errorCode = getBrowserAuthErrorCode(err);
+      if (errorCode) {
+        switch (errorCode) {
           case "CANCELLED_OR_DENIED":
             setError("Cancelled or timed out");
             break;

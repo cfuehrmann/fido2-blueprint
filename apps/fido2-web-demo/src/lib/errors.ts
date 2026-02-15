@@ -5,25 +5,13 @@ export type BrowserAuthErrorCode =
   | "CANCELLED_OR_DENIED" // NotAllowedError - user cancelled, timed out, or blocked
   | "ALREADY_REGISTERED"; // InvalidStateError - credential already exists
 
-export class BrowserAuthError extends Error {
-  constructor(
-    public readonly code: BrowserAuthErrorCode,
-    message: string
-  ) {
-    super(message);
-    this.name = "BrowserAuthError";
-  }
-}
-
-// Convert browser WebAuthn errors to BrowserAuthError
-export function toBrowserAuthError(err: unknown): BrowserAuthError | null {
+// Convert browser WebAuthn errors to a typed error code
+export function getBrowserAuthErrorCode(
+  err: unknown
+): BrowserAuthErrorCode | null {
   if (err instanceof Error) {
-    if (err.name === "NotAllowedError") {
-      return new BrowserAuthError("CANCELLED_OR_DENIED", err.message);
-    }
-    if (err.name === "InvalidStateError") {
-      return new BrowserAuthError("ALREADY_REGISTERED", err.message);
-    }
+    if (err.name === "NotAllowedError") return "CANCELLED_OR_DENIED";
+    if (err.name === "InvalidStateError") return "ALREADY_REGISTERED";
   }
   return null;
 }
