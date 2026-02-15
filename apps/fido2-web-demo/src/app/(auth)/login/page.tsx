@@ -90,12 +90,16 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
-      if (err instanceof Error && err.name === "NotAllowedError") {
-        setError("Authentication was cancelled or timed out");
-      } else {
-        setError(getErrorMessage(err));
+      // Errors from the browser's WebAuthn API (authenticator interaction)
+      if (err instanceof Error) {
+        switch (err.name) {
+          case "NotAllowedError":
+            setError("Authentication was cancelled or timed out");
+            return;
+        }
       }
+      // Errors from the server (tRPC/auth package)
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
