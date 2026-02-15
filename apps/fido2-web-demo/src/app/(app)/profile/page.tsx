@@ -76,13 +76,19 @@ export default function ProfilePage() {
       });
       await addPasskeyFinish.mutateAsync({ authenticatorResponse });
     } catch (err) {
+      // Errors from the browser's WebAuthn API (authenticator interaction)
       if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled");
-        } else {
-          setError(err.message);
+        switch (err.name) {
+          case "NotAllowedError":
+            setError("Passkey creation was cancelled or timed out");
+            return;
+          case "InvalidStateError":
+            setError("This passkey is already registered");
+            return;
         }
       }
+      // Errors from the server (tRPC/auth package)
+      setError(err instanceof Error ? err.message : "Failed to add passkey");
     } finally {
       setIsAddingPasskey(false);
     }

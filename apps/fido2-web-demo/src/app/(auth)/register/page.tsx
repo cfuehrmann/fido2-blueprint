@@ -132,16 +132,18 @@ function RegisterForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
+      // Errors from the browser's WebAuthn API (authenticator interaction)
       if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled or timed out");
-          return;
-        } else if (err.name === "InvalidStateError") {
-          setError("This passkey is already registered");
-          return;
+        switch (err.name) {
+          case "NotAllowedError":
+            setError("Passkey creation was cancelled or timed out");
+            return;
+          case "InvalidStateError":
+            setError("This passkey is already registered");
+            return;
         }
       }
+      // Errors from the server (tRPC/auth package)
       setError(getErrorMessage(err));
     } finally {
       setIsRegistering(false);
