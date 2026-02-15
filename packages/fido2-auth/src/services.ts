@@ -16,7 +16,7 @@ import {
   deleteCredential as fido2DeleteCredential,
   type WebAuthnConfig,
 } from "./fido2";
-import { AuthError } from "./errors";
+import { ServerAuthError } from "./errors";
 
 type AuthDatabase = BetterSQLite3Database<typeof schema>;
 
@@ -35,7 +35,7 @@ export async function registerStart(
     .get();
 
   if (existing) {
-    throw new AuthError("USERNAME_TAKEN", "Username is already taken");
+    throw new ServerAuthError("USERNAME_TAKEN", "Username is already taken");
   }
 
   const userId = randomUUID();
@@ -65,7 +65,7 @@ export async function registerFinish(
     .get();
 
   if (existing) {
-    throw new AuthError("USERNAME_TAKEN", "Username is already taken");
+    throw new ServerAuthError("USERNAME_TAKEN", "Username is already taken");
   }
 
   // Create the user FIRST (before storing credential due to FK constraint)
@@ -89,7 +89,7 @@ export async function registerFinish(
   } catch (error) {
     // Rollback: delete the user if credential storage fails
     await db.delete(schema.users).where(eq(schema.users.id, userId));
-    throw new AuthError(
+    throw new ServerAuthError(
       "REGISTRATION_FAILED",
       error instanceof Error
         ? error.message
@@ -122,7 +122,7 @@ export async function loginFinish(
     );
     return { userId: result.userId, username: result.username };
   } catch (error) {
-    throw new AuthError(
+    throw new ServerAuthError(
       "AUTHENTICATION_FAILED",
       error instanceof Error
         ? error.message
@@ -146,7 +146,7 @@ export async function getUser(db: AuthDatabase, userId: string) {
     .get();
 
   if (!user) {
-    throw new AuthError("USER_NOT_FOUND", "User not found");
+    throw new ServerAuthError("USER_NOT_FOUND", "User not found");
   }
 
   return user;
@@ -203,7 +203,7 @@ export async function addPasskeyFinish(
       authenticatorResponse as RegistrationResponseJSON
     );
   } catch (error) {
-    throw new AuthError(
+    throw new ServerAuthError(
       "REGISTRATION_FAILED",
       error instanceof Error ? error.message : "Failed to add passkey"
     );
@@ -218,8 +218,8 @@ export async function removeCredential(
   try {
     await fido2DeleteCredential(db, userId, credentialId);
   } catch (error) {
-    if (error instanceof AuthError) throw error;
-    throw new AuthError(
+    if (error instanceof ServerAuthError) throw error;
+    throw new ServerAuthError(
       "CREDENTIAL_NOT_FOUND",
       error instanceof Error ? error.message : "Failed to delete credential"
     );
@@ -235,8 +235,8 @@ export async function renameCredential(
   try {
     await fido2RenameCredential(db, userId, credentialId, newName);
   } catch (error) {
-    if (error instanceof AuthError) throw error;
-    throw new AuthError(
+    if (error instanceof ServerAuthError) throw error;
+    throw new ServerAuthError(
       "CREDENTIAL_NOT_FOUND",
       error instanceof Error ? error.message : "Failed to rename credential"
     );

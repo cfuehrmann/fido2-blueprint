@@ -10,7 +10,7 @@ import {
   getAndClearChallengeUsernameless,
 } from "@/server/auth/session";
 import { auth } from "@/server/auth";
-import { AuthError, usernameSchema } from "@repo/fido2-auth";
+import { ServerAuthError, usernameSchema } from "@repo/fido2-auth";
 
 export const authRouter = router({
   // Get current session
@@ -37,7 +37,10 @@ export const authRouter = router({
 
         return { options };
       } catch (error) {
-        if (error instanceof AuthError && error.code === "USERNAME_TAKEN") {
+        if (
+          error instanceof ServerAuthError &&
+          error.code === "USERNAME_TAKEN"
+        ) {
           throw new TRPCError({ code: "CONFLICT", message: error.message });
         }
         throw error;
@@ -71,7 +74,7 @@ export const authRouter = router({
         await createSession(userId, username);
         return { success: true };
       } catch (error) {
-        if (error instanceof AuthError) {
+        if (error instanceof ServerAuthError) {
           throw new TRPCError({
             code: error.code === "USERNAME_TAKEN" ? "CONFLICT" : "BAD_REQUEST",
             message: error.message,
@@ -115,7 +118,7 @@ export const authRouter = router({
         await createSession(userId, username);
         return { success: true };
       } catch (error) {
-        if (error instanceof AuthError) {
+        if (error instanceof ServerAuthError) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
             message: error.message,

@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { startAuthentication } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, toBrowserAuthError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -90,12 +90,13 @@ function LoginForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
-      if (err instanceof Error && err.name === "NotAllowedError") {
-        setError("Authentication was cancelled or timed out");
-      } else {
-        setError(getErrorMessage(err));
+      const browserAuthError = toBrowserAuthError(err);
+      if (browserAuthError) {
+        // Login only sees CANCELLED_OR_DENIED (no ALREADY_REGISTERED possible)
+        setError("Cancelled or timed out");
+        return;
       }
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }

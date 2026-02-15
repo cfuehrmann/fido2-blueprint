@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { startRegistration } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
-import { getErrorMessage } from "@/lib/errors";
+import { getErrorMessage, toBrowserAuthError } from "@/lib/errors";
 import { usernameSchema } from "@repo/fido2-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -132,15 +132,17 @@ function RegisterForm() {
       // Success - redirect to profile
       router.push("/profile");
     } catch (err) {
-      // Handle WebAuthn errors specially
-      if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled or timed out");
-          return;
-        } else if (err.name === "InvalidStateError") {
-          setError("This passkey is already registered");
-          return;
+      const browserAuthError = toBrowserAuthError(err);
+      if (browserAuthError) {
+        switch (browserAuthError.code) {
+          case "CANCELLED_OR_DENIED":
+            setError("Cancelled or timed out");
+            break;
+          case "ALREADY_REGISTERED":
+            setError("This passkey is already registered");
+            break;
         }
+        return;
       }
       setError(getErrorMessage(err));
     } finally {

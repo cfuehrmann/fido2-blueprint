@@ -1,4 +1,4 @@
-export type AuthErrorCode =
+export type ServerAuthErrorCode =
   | "USERNAME_TAKEN"
   | "USER_NOT_FOUND"
   | "CREDENTIAL_NOT_FOUND"
@@ -7,12 +7,12 @@ export type AuthErrorCode =
   | "REGISTRATION_FAILED"
   | "AUTHENTICATION_FAILED";
 
-export class AuthError extends Error {
+export class ServerAuthError extends Error {
   constructor(
-    public readonly code: AuthErrorCode,
+    public readonly code: ServerAuthErrorCode,
     message: string
   ) {
     super(message);
-    this.name = "AuthError";
+    this.name = "ServerAuthError";
   }
 }

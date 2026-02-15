@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { startRegistration } from "@simplewebauthn/browser";
 import { trpc } from "@/lib/trpc";
+import { toBrowserAuthError } from "@/lib/errors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,13 +77,19 @@ export default function ProfilePage() {
       });
       await addPasskeyFinish.mutateAsync({ authenticatorResponse });
     } catch (err) {
-      if (err instanceof Error) {
-        if (err.name === "NotAllowedError") {
-          setError("Passkey creation was cancelled");
-        } else {
-          setError(err.message);
+      const browserAuthError = toBrowserAuthError(err);
+      if (browserAuthError) {
+        switch (browserAuthError.code) {
+          case "CANCELLED_OR_DENIED":
+            setError("Cancelled or timed out");
+            break;
+          case "ALREADY_REGISTERED":
+            setError("This passkey is already registered");
+            break;
         }
+        return;
       }
+      setError(err instanceof Error ? err.message : "Failed to add passkey");
     } finally {
       setIsAddingPasskey(false);
     }

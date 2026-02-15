@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc";
 import { storeChallenge, getAndClearChallenge } from "@/server/auth/session";
 import { auth } from "@/server/auth";
-import { AuthError } from "@repo/fido2-auth";
+import { ServerAuthError } from "@repo/fido2-auth";
 
 export const profileRouter = router({
   // Get current user's profile
@@ -11,7 +11,7 @@ export const profileRouter = router({
     try {
       return await auth.getUser(ctx.user.userId);
     } catch (error) {
-      if (error instanceof AuthError && error.code === "USER_NOT_FOUND") {
+      if (error instanceof ServerAuthError && error.code === "USER_NOT_FOUND") {
         throw new TRPCError({ code: "NOT_FOUND", message: error.message });
       }
       throw error;
@@ -98,7 +98,7 @@ export const profileRouter = router({
           input.authenticatorResponse
         );
       } catch (error) {
-        if (error instanceof AuthError) {
+        if (error instanceof ServerAuthError) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: error.message,
@@ -117,7 +117,7 @@ export const profileRouter = router({
       try {
         await auth.removeCredential(ctx.user.userId, input.credentialId);
       } catch (error) {
-        if (error instanceof AuthError) {
+        if (error instanceof ServerAuthError) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: error.message,
@@ -145,7 +145,7 @@ export const profileRouter = router({
           input.name
         );
       } catch (error) {
-        if (error instanceof AuthError) {
+        if (error instanceof ServerAuthError) {
           throw new TRPCError({
             code: "BAD_REQUEST",
             message: error.message,
